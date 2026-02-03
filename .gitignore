@@ -1,0 +1,16 @@
+# --- OS Dosyaları ---
+.DS_Store
+Thumbs.db
+
+# --- Node.js (Frontend) ---
+node_modules/
+.next/
+web/.env.local
+web/.env
+
+# --- Python (AI Backend) ---
+__pycache__/
+*.py[cod]
+venv/
+ai-engine/venv/
+.env
