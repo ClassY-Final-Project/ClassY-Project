@@ -1,0 +1,10 @@
+{
+  "pythonVersion": "3.10",
+  "typeCheckingMode": "basic",
+  "reportOptionalMemberAccess": false,
+  "reportOptionalOperand": false,
+  "reportOptionalSubscript": false,
+  "reportOptionalCall": false,
+  "venvPath": ".`",
+  "venv": "venv"
+}
