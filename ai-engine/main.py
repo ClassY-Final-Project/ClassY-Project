@@ -69,6 +69,7 @@ async def health_check():
 async def upload_pdf(
     file: UploadFile = File(...),
     course_id: str = Form("default"),
+    replace_existing: bool = Form(True),
 ):
     """Upload PDF and create/update index"""
     try:
@@ -84,6 +85,14 @@ async def upload_pdf(
         # Create course folder if not exists
         course_folder: Path = Path(COURSES_DIR) / str(course_id)  # type: ignore
         course_folder.mkdir(parents=True, exist_ok=True)
+
+        # Keep active source deterministic: remove old PDFs in the same course when requested.
+        if replace_existing:
+            for old_pdf in course_folder.glob("*.pdf"):
+                try:
+                    old_pdf.unlink()
+                except Exception as unlink_error:
+                    print(f"⚠️ Could not remove old PDF {old_pdf}: {unlink_error}")
         
         # Save PDF
         file_path: Path = course_folder / str(file_name)  # type: ignore

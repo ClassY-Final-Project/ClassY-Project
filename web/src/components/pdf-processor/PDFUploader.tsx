@@ -8,6 +8,7 @@ interface UploadStatus {
   error?: string;
   filename?: string;
   docCount?: number;
+  courseId?: string;
 }
 
 interface PDFUploaderProps {
@@ -19,6 +20,18 @@ export function PDFUploader({ courseId, onUploadSuccess }: PDFUploaderProps) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<UploadStatus | null>(null);
+
+  const buildUploadCourseId = (baseCourseId: string, fileName: string): string => {
+    const fileSlug = fileName
+      .replace(/\.[^.]+$/, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40);
+
+    const safeSlug = fileSlug.length > 0 ? fileSlug : "pdf";
+    return `${baseCourseId}-${safeSlug}-${Date.now()}`;
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -41,8 +54,9 @@ export function PDFUploader({ courseId, onUploadSuccess }: PDFUploaderProps) {
 
     try {
       const formData = new FormData();
+      const uploadCourseId = buildUploadCourseId(courseId, file.name);
       formData.append("file", file);
-      formData.append("courseId", courseId);
+      formData.append("courseId", uploadCourseId);
 
       const response = await fetch("/api/ai/upload", {
         method: "POST",
@@ -54,13 +68,15 @@ export function PDFUploader({ courseId, onUploadSuccess }: PDFUploaderProps) {
       if (!response.ok) {
         setStatus({ error: data.error || "Upload başarısız" });
       } else {
+        const resolvedCourseId = data.courseId || uploadCourseId;
         setStatus({
           success: true,
           filename: data.filename,
           docCount: data.docCount,
+          courseId: resolvedCourseId,
         });
         if (onUploadSuccess) {
-          onUploadSuccess(courseId);
+          onUploadSuccess(resolvedCourseId);
         }
         setFile(null);
       }
@@ -111,6 +127,7 @@ export function PDFUploader({ courseId, onUploadSuccess }: PDFUploaderProps) {
           <div className="text-sm text-green-700">
             <p className="font-semibold">{status.filename} başarıyla yüklendi</p>
             <p className="text-xs">{status.docCount} belge indexlendi</p>
+            {status.courseId && <p className="text-xs">Aktif içerik ID: {status.courseId}</p>}
           </div>
         </div>
       )}
