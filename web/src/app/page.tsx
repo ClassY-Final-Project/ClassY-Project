@@ -6,7 +6,6 @@ import { useState } from "react";
 import { BookOpen } from "lucide-react";
 
 export default function Home() {
-  const [uploadSuccess, setUploadSuccess] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState<string>("course-101");
 
   return (
@@ -64,7 +63,7 @@ export default function Home() {
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="font-semibold text-gray-800 mb-2">📝 Özet Oluştur</h3>
             <p className="text-sm text-gray-600">
-              Yüklediğiniz PDF'den otomatik olarak kısa ve özlü bir özet oluştur. Hızlı öğrenme için ideal.
+              Yüklediğiniz PDF&apos;den otomatik olarak kısa ve özlü bir özet oluştur. Hızlı öğrenme için ideal.
             </p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">

@@ -5,17 +5,94 @@ import { Loader, AlertCircle, CheckCircle, FileText, Brain } from "lucide-react"
 
 type ProcessingMode = "summary" | "quiz" | null;
 
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  correct: number;
+}
+
 interface ProcessResult {
   success?: boolean;
   error?: string;
   summary?: string;
-  questions?: any[];
+  questions?: QuizQuestion[];
   count?: number;
 }
 
 interface PDFProcessorProps {
   courseId: string;
 }
+
+const normalizeGeneratedText = (value: string): string => {
+  return value
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/([.,;:!?])([A-Za-zÇĞİÖŞÜçğıöşü])/g, "$1 $2")
+    .replace(/([a-zçğıöşü])([A-ZÇĞİÖŞÜ])/g, "$1 $2")
+    .replace(/\s+([.,;:!?])/g, "$1")
+    .replace(/[^\S\n]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+
+const toQuizQuestion = (raw: unknown): QuizQuestion | null => {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+
+  const candidate = raw as {
+    question?: unknown;
+    options?: unknown;
+    correct?: unknown;
+  };
+
+  if (!Array.isArray(candidate.options)) {
+    return null;
+  }
+
+  const options = candidate.options
+    .map((option) => normalizeGeneratedText(String(option || "")))
+    .filter((option) => option.length > 0)
+    .slice(0, 4);
+
+  if (options.length < 4) {
+    return null;
+  }
+
+  const correct =
+    typeof candidate.correct === "number" && candidate.correct >= 0 && candidate.correct <= 3
+      ? candidate.correct
+      : 0;
+
+  return {
+    question: normalizeGeneratedText(String(candidate.question || "")),
+    options,
+    correct,
+  };
+};
+
+const normalizeResult = (mode: ProcessingMode, data: ProcessResult): ProcessResult => {
+  if (mode === "summary" && data.summary) {
+    return {
+      ...data,
+      summary: normalizeGeneratedText(data.summary),
+    };
+  }
+
+  if (mode === "quiz" && Array.isArray(data.questions)) {
+    const normalizedQuestions = data.questions
+      .map((question) => toQuizQuestion(question))
+      .filter((question): question is QuizQuestion => question !== null);
+
+    return {
+      ...data,
+      questions: normalizedQuestions,
+      count: normalizedQuestions.length,
+    };
+  }
+
+  return data;
+};
 
 export function PDFProcessor({ courseId }: PDFProcessorProps) {
   const [mode, setMode] = useState<ProcessingMode>(null);
@@ -37,7 +114,7 @@ export function PDFProcessor({ courseId }: PDFProcessorProps) {
 
     try {
       let endpoint = "";
-      let payload: any = {};
+      let payload: Record<string, unknown> = {};
 
       if (mode === "summary") {
         endpoint = "/api/ai/summary";
@@ -53,12 +130,12 @@ export function PDFProcessor({ courseId }: PDFProcessorProps) {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as ProcessResult;
 
       if (!response.ok) {
         setResult({ error: data.error || "İşlem başarısız" });
       } else {
-        setResult(data);
+        setResult(normalizeResult(mode, data));
         if (mode === "quiz") {
           setSelectedAnswers({});
         }
@@ -72,12 +149,12 @@ export function PDFProcessor({ courseId }: PDFProcessorProps) {
     }
   };
 
-  const handleSubmitQuiz = async () => {
+  const handleSubmitQuiz = () => {
     if (!result?.questions) return;
 
     // Calculate score
     let correctCount = 0;
-    result.questions.forEach((q: any, idx: number) => {
+    result.questions.forEach((q: QuizQuestion, idx: number) => {
       if (selectedAnswers[idx] === q.correct) {
         correctCount++;
       }
@@ -104,6 +181,11 @@ export function PDFProcessor({ courseId }: PDFProcessorProps) {
     setQuizSubmitted(false);
     setScore(null);
   };
+
+  const summaryParagraphs = (result?.summary || "")
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter((paragraph) => paragraph.length > 0);
 
   return (
     <div className="w-full max-w-2xl mx-auto p-6 bg-white rounded-lg shadow">
@@ -181,9 +263,11 @@ export function PDFProcessor({ courseId }: PDFProcessorProps) {
 
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <h3 className="font-semibold text-gray-800 mb-2">Ders Özeti</h3>
-            <p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">
-              {result.summary}
-            </p>
+            <div className="space-y-3 text-gray-700 text-sm leading-relaxed">
+              {summaryParagraphs.map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))}
+            </div>
           </div>
 
           <button
@@ -202,7 +286,7 @@ export function PDFProcessor({ courseId }: PDFProcessorProps) {
             Quiz: {result.count} Soru
           </h3>
 
-          {result.questions.map((question: any, idx: number) => (
+          {result.questions.map((question: QuizQuestion, idx: number) => (
             <div key={idx} className="border border-gray-200 rounded-lg p-4">
               <p className="font-semibold text-gray-800 mb-3">
                 {idx + 1}. {question.question}
@@ -245,7 +329,7 @@ export function PDFProcessor({ courseId }: PDFProcessorProps) {
               onClick={handleSubmitQuiz}
               className="w-full bg-green-600 text-white py-3 rounded-md hover:bg-green-700 transition-colors font-semibold"
             >
-              Quiz'i Gönder
+              Quiz&apos;i Gönder
             </button>
           )}
 
