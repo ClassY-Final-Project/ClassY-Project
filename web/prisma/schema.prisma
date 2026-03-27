@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // --- 1. USERS ---
@@ -78,36 +79,52 @@ enum NoteStatus {
 model StudyNote {
   id              String           @id @default(uuid())
   studentId       String
-  fileUrl         String
+  fileUrl         String?          
   fileName        String
+  summary         String?          
   processedStatus NoteStatus       @default(PENDING)
   uploadedAt      DateTime         @default(now())
+  subject   String   @default("Genel")
 
   student         User             @relation(fields: [studentId], references: [id])
-  embeddings      NoteEmbedding[]
+// embeddings      NoteEmbedding[]
   quizzes         Quiz[]
+  flashcards      Flashcard[]      
+}
+
+model Flashcard {
+  id        String    @id @default(uuid())
+  noteId    String
+  front     String    // Kartın ön yüzü (Kavram/Soru)
+  back      String    // Kartın arka yüzü (Tanım/Cevap)
+  subject   String   @default("Genel")
+  
+  // İlişki: Bu kart hangi nota ait? (Not silinirse kartlar da silinsin)
+  note      StudyNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
 }
 
 // Vektör desteği için özel model (PostgreSQL pgvector gerektirir)
 // Şimdilik standart tablo gibi tanımlıyoruz, vector tipi için raw SQL gerekecek.
-model NoteEmbedding {
-  id           String    @id @default(uuid())
-  noteId       String
-  contentChunk String
-  // embedding vector(1536) -> Prisma henüz native vector desteklemiyor, bunu unsupported ile geçiyoruz
-  embedding    Unsupported("vector(1536)")? 
-
-  note         StudyNote @relation(fields: [noteId], references: [id])
-}
+//model NoteEmbedding {
+//  id           String    @id @default(uuid())
+//  noteId       String
+//  contentChunk String
+//  // embedding vector(1536) -> Prisma henüz native vector desteklemiyor, bunu unsupported ile geçiyoruz
+//  embedding    Unsupported("vector(1536)")? 
+//
+//  note         StudyNote @relation(fields: [noteId], references: [id])
+//}
 
 model Quiz {
   id        String   @id @default(uuid())
-  noteId    String
+  noteId    String?
   studentId String
+  subject   String   @default("Genel")
+  title     String
   score     Int?
   createdAt DateTime @default(now())
 
-  note      StudyNote      @relation(fields: [noteId], references: [id])
+  note      StudyNote?      @relation(fields: [noteId], references: [id])
   student   User           @relation(fields: [studentId], references: [id])
   questions QuizQuestion[]
 }
@@ -116,9 +133,9 @@ model QuizQuestion {
   id            String @id @default(uuid())
   quizId        String
   questionText  String
-  options       Json   // Şıklar: ["A", "B"]
+  options       Json   // Şıklar: ["A", "B", "C", "D"]
   correctAnswer String
   userAnswer    String?
 
-  quiz          Quiz   @relation(fields: [quizId], references: [id])
+  quiz          Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
 }
