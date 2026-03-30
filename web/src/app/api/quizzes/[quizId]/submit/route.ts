@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// 1. DEĞİŞİKLİK: params objesinin içindeki değişkenin tipini 'quizId' olarak güncelledik
+// DİKKAT: params tipi Promise olarak güncellendi
 export async function POST(
   request: Request,
-  { params }: { params: { quizId: string } },
+  { params }: { params: Promise<{ quizId: string }> },
 ) {
   try {
     const { user, error } = verifyToken(request);
@@ -18,8 +18,9 @@ export async function POST(
       );
     }
 
-    // 2. DEĞİŞİKLİK: Artık params.id değil, klasörüne verdiğin isim olan params.quizId'yi çekiyoruz
-    const currentQuizId = params.quizId;
+    // 1. ÇÖZÜM: params'ı await ile çözümlüyoruz
+    const resolvedParams = await params;
+    const currentQuizId = resolvedParams.quizId;
 
     const body = await request.json();
     const { answers } = body;

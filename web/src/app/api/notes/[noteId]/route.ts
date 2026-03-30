@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+// DİKKAT: params tipi Promise olarak güncellendi
 export async function DELETE(
   request: Request,
-  { params }: { params: { noteId: string } },
+  { params }: { params: Promise<{ noteId: string }> },
 ) {
   try {
     const { user, error } = verifyToken(request);
@@ -17,7 +18,9 @@ export async function DELETE(
       );
     }
 
-    const currentNoteId = params.noteId;
+    // NEXT.JS 16 ÇÖZÜMÜ: params'ı await ile çözümlüyoruz
+    const resolvedParams = await params;
+    const currentNoteId = resolvedParams.noteId;
 
     // Not kontrolü
     const note = await prisma.studyNote.findUnique({

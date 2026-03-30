@@ -4,10 +4,9 @@ import { prisma } from "@/lib/prisma";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { quizId: string } },
+  { params }: { params: Promise<{ quizId: string }> },
 ) {
   try {
-    // 1. Güvenlik Kontrolü
     const { user, error } = verifyToken(request);
     if (error) return error;
 
@@ -18,9 +17,10 @@ export async function DELETE(
       );
     }
 
-    const currentQuizId = params.quizId;
+    // AWAIT EKLENDİ
+    const resolvedParams = await params;
+    const currentQuizId = resolvedParams.quizId;
 
-    // 2. Sınav gerçekten var mı ve bu öğrenciye mi ait?
     const quiz = await prisma.quiz.findUnique({
       where: { id: currentQuizId },
     });
@@ -32,7 +32,6 @@ export async function DELETE(
       );
     }
 
-    // 3. Sınavı Sil (Cascade sayesinde bağlı 'QuizQuestion'lar da silinecek)
     await prisma.quiz.delete({
       where: { id: currentQuizId },
     });
