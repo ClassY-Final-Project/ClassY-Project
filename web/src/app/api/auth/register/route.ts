@@ -15,7 +15,7 @@ const registerSchema = z.object({
 
 /**
  * @swagger
- * /auth/register:
+ * /api/auth/register:
  *   post:
  *     summary: Yeni kullanıcı kaydı oluşturur
  *     tags: [Auth]

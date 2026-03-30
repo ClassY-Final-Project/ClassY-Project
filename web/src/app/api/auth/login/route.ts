@@ -12,7 +12,7 @@ const loginSchema = z.object({
 
 /**
  * @swagger
- * /auth/login:
+ * /api/auth/login:
  *   post:
  *     summary: Kullanıcı girişi yapar ve JWT token döner
  *     tags: [Auth]

@@ -4,7 +4,7 @@ import { verifyToken } from "@/lib/auth"; // Az önce yazdığımız güvenlik g
 
 /**
  * @swagger
- * /auth/me:
+ * /api/auth/me:
  *   get:
  *     summary: Geçerli kullanıcının (oturum) bilgilerini getirir
  *     tags: [Auth]

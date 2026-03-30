@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * @swagger
- * /notes/generate:
+ * /api/notes/generate:
  *   post:
  *     summary: PDF dosyasından özet ve çalışma kartları (flashcard) üretir
  *     tags: [Notes]

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 // DİKKAT: params tipi Promise olarak güncellendi
 /**
  * @swagger
- * /notes/{noteId}:
+ * /api/notes/{noteId}:
  *   delete:
  *     summary: Belirli bir notu ve ona bağlı çalışma kartlarını siler
  *     tags: [Notes]

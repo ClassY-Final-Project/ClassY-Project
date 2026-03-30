@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// DİKKAT: params tipi Promise olarak güncellendi
 /**
  * @swagger
- * /quizzes/{quizId}/submit:
+ * /api/quizzes/{quizId}/submit:
  *   post:
  *     summary: Sınav cevaplarını gönderir ve puanı hesaplar
  *     tags: [Quizzes]
@@ -31,10 +30,10 @@ import { prisma } from "@/lib/prisma";
  *                 type: object
  *                 additionalProperties:
  *                   type: string
- *                 description: "{ 'question_id': 'option_id' } şeklinde cevaplar"
+ *                 description: "{ 'question_id': 'A' } şeklinde sadece şık harfi veya tam metin gönderilebilir"
  *                 example:
- *                   "question-uuid-1": "A"
- *                   "question-uuid-2": "C"
+ *                   question-uuid-1: "A"
+ *                   question-uuid-2: "C"
  *     responses:
  *       200:
  *         description: Sınav başarıyla tamamlandı, puan döndürüldü
@@ -60,7 +59,6 @@ export async function POST(
       );
     }
 
-    // 1. ÇÖZÜM: params'ı await ile çözümlüyoruz
     const resolvedParams = await params;
     const currentQuizId = resolvedParams.quizId;
 
@@ -84,17 +82,51 @@ export async function POST(
 
     for (const question of quiz.questions) {
       const studentAnswer = answers[question.id];
+      if (!studentAnswer) continue;
 
-      if (studentAnswer === question.correctAnswer) {
+      let isCorrect = false;
+      const correctAnswer = question.correctAnswer as string;
+
+      if (studentAnswer === correctAnswer) {
+        isCorrect = true;
+      } else if (studentAnswer.length === 1 || studentAnswer.length === 2) {
+        const letter = studentAnswer.charAt(0).toUpperCase();
+        const letterToIndex: Record<string, number> = {
+          A: 0,
+          B: 1,
+          C: 2,
+          D: 3,
+          E: 4,
+        };
+        const index = letterToIndex[letter];
+
+        if (index !== undefined) {
+          if (
+            correctAnswer.startsWith(`${letter})`) ||
+            correctAnswer.startsWith(`${letter}.`) ||
+            correctAnswer.startsWith(`${letter} `)
+          ) {
+            isCorrect = true;
+          } else {
+            const optionsArray = question.options as string[];
+            if (
+              Array.isArray(optionsArray) &&
+              optionsArray[index] === correctAnswer
+            ) {
+              isCorrect = true;
+            }
+          }
+        }
+      }
+
+      if (isCorrect) {
         correctCount++;
       }
 
-      if (studentAnswer) {
-        await prisma.quizQuestion.update({
-          where: { id: question.id },
-          data: { userAnswer: studentAnswer },
-        });
-      }
+      await prisma.quizQuestion.update({
+        where: { id: question.id },
+        data: { userAnswer: studentAnswer },
+      });
     }
 
     const finalScore = Math.round((correctCount / totalQuestions) * 100);

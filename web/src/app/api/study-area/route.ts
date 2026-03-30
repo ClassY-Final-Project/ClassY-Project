@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * @swagger
- * /study-area:
+ * /api/study-area:
  *   get:
  *     summary: Öğrencinin çalışma alanını (notları ve quizleri) getirir
  *     tags: [Study Area]

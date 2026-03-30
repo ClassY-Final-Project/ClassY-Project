@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * @swagger
- * /quizzes/generate:
+ * /api/quizzes/generate:
  *   post:
  *     summary: PDF dosyasından AI destekli sınav (quiz) üretir
  *     tags: [Quizzes]
@@ -42,11 +42,14 @@ export async function POST(request: Request) {
     // 1. GÜVENLİK: İsteği atan kişi gerçekten sisteme giriş yapmış mı?
     const { user, error } = verifyToken(request);
     if (error) return error;
-    
+
     // Yalnızca error objesini kontrol etmek TypeScript için user'ın kesinlikle var olduğunu garanti etmez.
     // Bu yüzden user'ın var olup olmadığını da açıkça kontrol etmemiz gerekiyor:
     if (!user) {
-      return NextResponse.json({ error: "Kullanıcı doğrulanamadı." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Kullanıcı doğrulanamadı." },
+        { status: 401 },
+      );
     }
 
     // 2. DOSYAYI YAKALAMA: Frontend'den gelen 'multipart/form-data' isteğini oku
