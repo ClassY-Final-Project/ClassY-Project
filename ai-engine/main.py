@@ -185,6 +185,8 @@ async def generate_quiz(
         print(f"\n--- SINAV ÜRETİM HATASI ---\n{str(e)}\n-------------------\n")
         raise HTTPException(status_code=500, detail=f"Sınav üretilirken hata oluştu: {str(e)}")
     
+# -- ÖZET VE HATIRLATMA KARTI OLUŞTURMA BÖLÜMÜ --
+    
 @app.post("/generate-study-notes")
 async def generate_study_notes(file: UploadFile = File(...)):
     try:
@@ -201,7 +203,7 @@ async def generate_study_notes(file: UploadFile = File(...)):
         Sen üniversite seviyesinde uzman bir eğitmensin.
         Aşağıdaki ders notlarını dikkatlice oku. Senden iki şey istiyorum:
         1. Bu notların kapsamlı ama öğrencinin kolayca okuyabileceği (hap bilgi formatında) bir özetini çıkar.
-        2. Bu notlardaki EN KRİTİK, sınavlarda çıkma ihtimali en yüksek ve akılda tutulması zor bilgileri kullanarak 10-15 adet Flashcard (Bilgi Kartı) hazırla.
+        2. Bu notlardaki EN KRİTİK, sınavlarda çıkma ihtimali en yüksek ve akılda tutulması zor bilgileri kullanarak MAKSİMUM 10 ADET Flashcard (Bilgi Kartı) hazırla. Gereksiz detaylardan kaçın.
 
         ÇOK ÖNEMLİ DİL KURALI: 
         Ders notları hangi dilde yazılmışsa (örneğin İngilizce, Türkçe vb.), özet ve flashcard'lar da KESİNLİKLE metnin orijinal dilinde olmalıdır. Metni başka bir dile çevirme!
@@ -209,6 +211,7 @@ async def generate_study_notes(file: UploadFile = File(...)):
         KURALLAR:
         - Yanıtını KESİNLİKLE sadece aşağıdaki JSON formatında ver, başına veya sonuna açıklama ekleme.
         - Flashcard'ların "front" (ön) yüzünde bir kavram veya kısa soru, "back" (arka) yüzünde ise onun net tanımı veya cevabı olmalıdır.
+        - KESİNLİKLE 10 adetten fazla flashcard üretme!
 
         İstenen JSON Formatı:
         {{
