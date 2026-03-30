@@ -13,6 +13,48 @@ const registerSchema = z.object({
   role: z.enum(["STUDENT", "INSTRUCTOR"]).default("STUDENT"),
 });
 
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Yeni kullanıcı kaydı oluşturur
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - fullName
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 example: password123
+ *                 minLength: 6
+ *               fullName:
+ *                 type: string
+ *                 example: John Doe
+ *                 minLength: 2
+ *               role:
+ *                 type: string
+ *                 enum: [STUDENT, INSTRUCTOR]
+ *                 default: STUDENT
+ *     responses:
+ *       201:
+ *         description: Kullanıcı başarıyla oluşturuldu
+ *       400:
+ *         description: Doğrulama hatası
+ *       409:
+ *         description: Bu e-posta adresi zaten kullanımda
+ *       500:
+ *         description: Sunucu tarafında hata
+ */
 export async function POST(request: Request) {
   try {
     // 2. İstemciden (Frontend) gelen veriyi al

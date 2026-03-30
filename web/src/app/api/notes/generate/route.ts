@@ -2,6 +2,37 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * @swagger
+ * /notes/generate:
+ *   post:
+ *     summary: PDF dosyasından özet ve çalışma kartları (flashcard) üretir
+ *     tags: [Notes]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Yüklenecek PDF dosyası
+ *     responses:
+ *       200:
+ *         description: Not ve kartlar başarıyla üretildi ve veritabanına kaydedildi
+ *       400:
+ *         description: Dosya eksik veya geçersiz
+ *       401:
+ *         description: Yetkisiz erişim
+ *       502:
+ *         description: Python AI motoru yanıt vermedi
+ *       500:
+ *         description: Sunucu tarafında hata
+ */
 export async function POST(request: Request) {
   try {
     // 1. Güvenlik Kontrolü

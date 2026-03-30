@@ -2,6 +2,22 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * @swagger
+ * /study-area:
+ *   get:
+ *     summary: Öğrencinin çalışma alanını (notları ve quizleri) getirir
+ *     tags: [Study Area]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Çalışma alanı verileri başarıyla getirildi
+ *       401:
+ *         description: Yetkisiz erişim
+ *       500:
+ *         description: Sunucu tarafında hata
+ */
 export async function GET(request: Request) {
   try {
     // 1. Güvenlik Kontrolü

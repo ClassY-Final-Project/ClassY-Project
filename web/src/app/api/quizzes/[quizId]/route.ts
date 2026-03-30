@@ -2,6 +2,31 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * @swagger
+ * /quizzes/{quizId}:
+ *   delete:
+ *     summary: Belirli bir sınavı siler
+ *     tags: [Quizzes]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: quizId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Silinecek sınavın ID'si
+ *     responses:
+ *       200:
+ *         description: Sınav başarıyla silindi
+ *       401:
+ *         description: Kullanıcı doğrulanamadı
+ *       404:
+ *         description: Sınav bulunamadı veya silme yetkisi yok
+ *       500:
+ *         description: Sunucu tarafında hata
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ quizId: string }> },

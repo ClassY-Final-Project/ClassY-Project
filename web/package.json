@@ -12,8 +12,10 @@
     "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.3",
     "next": "16.1.6",
+    "next-swagger-doc": "^0.4.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "swagger-ui-react": "^5.32.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -24,6 +26,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/swagger-ui-react": "^5.18.0",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",

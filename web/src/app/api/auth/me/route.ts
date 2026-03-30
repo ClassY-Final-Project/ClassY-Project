@@ -2,6 +2,24 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth"; // Az önce yazdığımız güvenlik görevlisi
 
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Geçerli kullanıcının (oturum) bilgilerini getirir
+ *     tags: [Auth]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Oturum geçerli, kullanıcı verisi döner
+ *       401:
+ *         description: Geçersiz veya eksik token
+ *       404:
+ *         description: Kullanıcı veritabanında bulunamadı
+ *       500:
+ *         description: Sunucu tarafında hata
+ */
 export async function GET(request: Request) {
   try {
     // 1. İstekle birlikte gelen Token'ı doğrula

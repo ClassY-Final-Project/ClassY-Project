@@ -10,6 +10,38 @@ const loginSchema = z.object({
   password: z.string().min(1, "Şifre alanı boş bırakılamaz."),
 });
 
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Kullanıcı girişi yapar ve JWT token döner
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 example: password123
+ *     responses:
+ *       200:
+ *         description: Giriş başarılı, Token döner
+ *       400:
+ *         description: Doğrulama hatası
+ *       401:
+ *         description: E-posta veya şifre hatalı
+ *       500:
+ *         description: Sunucu tarafında hata
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();

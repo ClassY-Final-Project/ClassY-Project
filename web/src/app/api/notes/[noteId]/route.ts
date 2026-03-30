@@ -3,6 +3,31 @@ import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // DİKKAT: params tipi Promise olarak güncellendi
+/**
+ * @swagger
+ * /notes/{noteId}:
+ *   delete:
+ *     summary: Belirli bir notu ve ona bağlı çalışma kartlarını siler
+ *     tags: [Notes]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: noteId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Silinecek notun ID'si
+ *     responses:
+ *       200:
+ *         description: Not başarıyla silindi
+ *       401:
+ *         description: Yetkisiz erişim
+ *       404:
+ *         description: Not bulunamadı veya silme yetkisi yok
+ *       500:
+ *         description: Sunucu tarafında hata
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ noteId: string }> },

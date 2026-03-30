@@ -3,6 +3,48 @@ import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // DİKKAT: params tipi Promise olarak güncellendi
+/**
+ * @swagger
+ * /quizzes/{quizId}/submit:
+ *   post:
+ *     summary: Sınav cevaplarını gönderir ve puanı hesaplar
+ *     tags: [Quizzes]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: quizId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Gönderilecek sınavın ID'si
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - answers
+ *             properties:
+ *               answers:
+ *                 type: object
+ *                 additionalProperties:
+ *                   type: string
+ *                 description: "{ 'question_id': 'option_id' } şeklinde cevaplar"
+ *                 example:
+ *                   "question-uuid-1": "A"
+ *                   "question-uuid-2": "C"
+ *     responses:
+ *       200:
+ *         description: Sınav başarıyla tamamlandı, puan döndürüldü
+ *       401:
+ *         description: Kullanıcı doğrulanamadı
+ *       404:
+ *         description: Sınav bulunamadı veya yetkiniz yok
+ *       500:
+ *         description: Sunucu tarafında hata
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ quizId: string }> },

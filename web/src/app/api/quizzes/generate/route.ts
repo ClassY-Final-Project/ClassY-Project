@@ -2,6 +2,41 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth"; // Güvenlik görevlimiz!
 import { prisma } from "@/lib/prisma";
 
+/**
+ * @swagger
+ * /quizzes/generate:
+ *   post:
+ *     summary: PDF dosyasından AI destekli sınav (quiz) üretir
+ *     tags: [Quizzes]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Yüklenecek PDF dosyası
+ *               question_count:
+ *                 type: integer
+ *                 description: Üretilecek soru sayısı
+ *                 default: 10
+ *     responses:
+ *       200:
+ *         description: Sınav başarıyla üretildi ve kaydedildi
+ *       400:
+ *         description: Lütfen bir PDF dosyası yükleyin
+ *       401:
+ *         description: Kullanıcı doğrulanamadı
+ *       502:
+ *         description: Yapay zeka motoru yanıt vermedi
+ *       500:
+ *         description: Sunucu tarafında hata
+ */
 export async function POST(request: Request) {
   try {
     // 1. GÜVENLİK: İsteği atan kişi gerçekten sisteme giriş yapmış mı?
