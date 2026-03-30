@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import PyPDF2
 import io
 import json
+import re
 
 load_dotenv()
 
@@ -19,6 +20,78 @@ app = FastAPI(title="ClassY AI Engine")
 
 class PromptRequest(BaseModel):
     text: str
+
+
+def _extract_first_json_block(text: str) -> str | None:
+    in_string = False
+    escape = False
+    depth = 0
+    start = -1
+
+    for i, ch in enumerate(text):
+        if escape:
+            escape = False
+            continue
+
+        if ch == "\\":
+            escape = True
+            continue
+
+        if ch == '"':
+            in_string = not in_string
+            continue
+
+        if in_string:
+            continue
+
+        if ch in "[{":
+            if depth == 0:
+                start = i
+            depth += 1
+            continue
+
+        if ch in "]}":
+            if depth > 0:
+                depth -= 1
+                if depth == 0 and start != -1:
+                    return text[start : i + 1]
+
+    return None
+
+
+def _parse_model_json(text: str):
+    if not text:
+        raise ValueError("Model bos cevap dondurdu.")
+
+    cleaned = text.replace("\ufeff", "").strip()
+    candidates: list[str] = [cleaned]
+
+    fenced_blocks = re.findall(r"```(?:json)?\s*([\s\S]*?)```", cleaned, flags=re.IGNORECASE)
+    candidates.extend(block.strip() for block in fenced_blocks if block.strip())
+
+    extracted = _extract_first_json_block(cleaned)
+    if extracted:
+        candidates.append(extracted.strip())
+
+    # Sırayı koruyarak duplicate elemanları çıkar
+    unique_candidates = list(dict.fromkeys(candidates))
+
+    for candidate in unique_candidates:
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+
+    raise ValueError("Model cikti metni gecerli JSON'a donusturulemedi.")
+
+
+def _strip_code_fences(text: str) -> str:
+    if not text:
+        return ""
+
+    cleaned = re.sub(r"```(?:json)?", "", text, flags=re.IGNORECASE)
+    cleaned = cleaned.replace("```", "")
+    return cleaned.strip()
 
 @app.get("/")
 def read_root():
@@ -88,9 +161,15 @@ async def generate_quiz(
             model='gemini-2.5-flash',
             contents=prompt
         )
-        
-        clean_text = response.text.replace("```json", "").replace("```", "").strip()
-        quiz_data = json.loads(clean_text)
+
+        parsed = _parse_model_json(response.text or "")
+
+        if isinstance(parsed, list):
+            quiz_data = parsed
+        elif isinstance(parsed, dict) and isinstance(parsed.get("quiz"), list):
+            quiz_data = parsed["quiz"]
+        else:
+            raise ValueError("Quiz formati beklenen yapiya uymuyor.")
 
         return {
             "status": "success",
@@ -100,7 +179,7 @@ async def generate_quiz(
             "quiz": quiz_data
         }
 
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, ValueError, TypeError):
         raise HTTPException(status_code=500, detail="Yapay zeka soruları üretti ama istenen JSON formatına dönüştüremedi.")
     except Exception as e:
         print(f"\n--- SINAV ÜRETİM HATASI ---\n{str(e)}\n-------------------\n")
@@ -151,10 +230,28 @@ async def generate_study_notes(file: UploadFile = File(...)):
             model='gemini-2.5-flash',
             contents=prompt
         )
-        
-        # 4. JSON Temizliği
-        clean_text = response.text.replace("```json", "").replace("```", "").strip()
-        notes_data = json.loads(clean_text)
+
+        response_text = response.text or ""
+
+        try:
+            parsed = _parse_model_json(response_text)
+
+            if isinstance(parsed, dict) and isinstance(parsed.get("data"), dict):
+                notes_data = parsed["data"]
+            elif isinstance(parsed, dict):
+                notes_data = parsed
+            else:
+                raise ValueError("Not/flashcard formati beklenen yapiya uymuyor.")
+        except (json.JSONDecodeError, ValueError, TypeError):
+            # JSON bozuk gelse bile kullanıcıya okunur özet döndür.
+            fallback_summary = _strip_code_fences(response_text)
+            if not fallback_summary:
+                raise
+
+            notes_data = {
+                "summary": fallback_summary,
+                "flashcards": []
+            }
 
         return {
             "status": "success",
@@ -162,7 +259,7 @@ async def generate_study_notes(file: UploadFile = File(...)):
             "data": notes_data
         }
 
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, ValueError, TypeError):
         raise HTTPException(status_code=500, detail="Yapay zeka notları üretti ama istenen JSON formatına dönüştüremedi.")
     except Exception as e:
         print(f"\n--- NOT ÜRETİM HATASI ---\n{str(e)}\n-------------------\n")

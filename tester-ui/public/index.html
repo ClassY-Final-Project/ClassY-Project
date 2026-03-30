@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClassY AI PDF Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <main class="shell">
+      <header class="hero card">
+        <div>
+          <p class="eyebrow">ClassY AI Tester</p>
+          <h1>PDF Studio</h1>
+          <p class="lead">
+            Sadece PDF yukle, quiz veya not/flashcard uret.
+            Sonuclar ham JSON degil, okunabilir formatta gosterilir.
+          </p>
+        </div>
+        <div class="status-list single">
+          <div class="status-dot" id="ai-status-dot"></div>
+          <span id="ai-status-text">AI: kontrol edilmedi</span>
+          <button id="check-health" class="btn secondary">AI Baglantisini Kontrol Et</button>
+        </div>
+      </header>
+
+      <section class="grid-two">
+        <article class="card">
+          <h2>Quiz Uret</h2>
+          <p class="muted">PDF icinden 10-20 adet coktan secmeli soru uretilir.</p>
+          <form id="quiz-form" class="stack">
+            <label class="field">
+              <span>PDF Dosyasi</span>
+              <input name="file" type="file" accept="application/pdf" required />
+            </label>
+            <label class="field">
+              <span>Soru Sayisi (10-20)</span>
+              <input name="question_count" type="number" min="10" max="20" value="10" />
+            </label>
+            <button type="submit" class="btn">Quiz Uret</button>
+          </form>
+        </article>
+
+        <article class="card">
+          <h2>Not ve Flashcard Uret</h2>
+          <p class="muted">PDF icinden ders ozeti ve flashcard seti uretilir.</p>
+          <form id="study-form" class="stack">
+            <label class="field">
+              <span>PDF Dosyasi</span>
+              <input name="file" type="file" accept="application/pdf" required />
+            </label>
+            <button type="submit" class="btn">Not ve Flashcard Uret</button>
+          </form>
+        </article>
+      </section>
+
+      <section class="card">
+        <h2>Sonuc</h2>
+        <div class="response-meta" id="response-meta">Bir islem sec ve PDF yukle.</div>
+        <div id="error-box" class="error-box hidden"></div>
+
+        <div id="quiz-result" class="hidden">
+          <h3>Uretilen Quiz</h3>
+          <p id="quiz-info" class="muted"></p>
+          <ol id="quiz-list" class="quiz-list"></ol>
+        </div>
+
+        <div id="study-result" class="hidden">
+          <h3>Ders Ozeti</h3>
+          <div id="summary-text" class="summary-text"></div>
+          <h3>Flashcardlar</h3>
+          <div id="flashcards-grid" class="flashcards-grid"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
