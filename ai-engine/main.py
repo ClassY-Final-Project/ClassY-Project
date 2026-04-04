@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
 import os
@@ -16,6 +17,14 @@ if not api_key:
 client = genai.Client(api_key=api_key)
 
 app = FastAPI(title="ClassY AI Engine")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class PromptRequest(BaseModel):
     text: str
