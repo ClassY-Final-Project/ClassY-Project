@@ -14,3 +14,8 @@ __pycache__/
 venv/
 ai-engine/venv/
 .env
+package-lock.json
+.gitignore
+web/package-lock.json
+web/package.json
+web/package-lock.json
