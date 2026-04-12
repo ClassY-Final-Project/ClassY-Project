@@ -70,24 +70,28 @@ async def generate_quiz(
         Sen üniversite seviyesinde uzman bir profesörsün.
         Aşağıda sana verilen ders notlarını dikkatlice oku ve bu notlardan öğrencilerin
         bilgisini ölçecek zorlayıcı {question_count} adet çoktan seçmeli soru hazırla.
-        
-        ÇOK ÖNEMLİ DİL KURALI: 
-        Ders notları hangi dilde yazılmışsa (örneğin İngilizce, Türkçe vb.), üreteceğin sorular, 
+
+        ÇOK ÖNEMLİ DİL KURALI:
+        Ders notları hangi dilde yazılmışsa (örneğin İngilizce, Türkçe vb.), üreteceğin sorular,
         şıklar ve cevaplar da KESİNLİKLE metnin orijinal dilinde olmalıdır. Metni başka bir dile çevirme!
-        
+
         KURALLAR:
         1. Sadece notlardaki bilgilere sadık kal.
         2. Yanıtını KESİNLİKLE sadece aşağıdaki JSON formatında ver, başka hiçbir metin ekleme.
         3. Tam olarak {question_count} adet soru ürettiğinden emin ol.
+        4. "subject" alanında bu notların ders adını/konusunu kısa ve öz yaz (ör: Matematik, Fizik, Tarih - notların dilinde).
 
         İstenen JSON Formatı:
-        [
-          {{
-            "question": "Soru metni buraya",
-            "options": ["A şıkkı", "B şıkkı", "C şıkkı", "D şıkkı"],
-            "answer": "Doğru olan şıkkın tam metni"
-          }}
-        ]
+        {{
+          "subject": "Bu notların ders adı/konusu",
+          "quiz": [
+            {{
+              "question": "Soru metni buraya",
+              "options": ["A şıkkı", "B şıkkı", "C şıkkı", "D şıkkı"],
+              "answer": "Doğru olan şıkkın tam metni"
+            }}
+          ]
+        }}
 
         İşte Ders Notları:
         {extracted_text}
@@ -97,15 +101,23 @@ async def generate_quiz(
             model='gemini-2.5-flash',
             contents=prompt
         )
-        
+
         clean_text = response.text.replace("```json", "").replace("```", "").strip()
-        quiz_data = json.loads(clean_text)
+        parsed = json.loads(clean_text)
+        # Eski format (düz dizi) ile geriye dönük uyumluluk
+        if isinstance(parsed, list):
+            quiz_data = parsed
+            subject = "Genel"
+        else:
+            quiz_data = parsed.get("quiz", [])
+            subject = parsed.get("subject", "Genel")
 
         return {
             "status": "success",
             "source_file": file.filename,
+            "subject": subject,
             "requested_count": question_count,
-            "actual_count": len(quiz_data), # Gerçekte kaç soru ürettiğini de dönüyoruz
+            "actual_count": len(quiz_data),
             "quiz": quiz_data
         }
 
@@ -131,11 +143,12 @@ async def generate_study_notes(file: UploadFile = File(...)):
         # 2. Özet ve Flashcard İçin Özel Prompt
         prompt = f"""
         Sen üniversite seviyesinde uzman bir eğitmensin.
-        Aşağıdaki ders notlarını dikkatlice oku. Senden iki şey istiyorum:
-        1. Bu notların kapsamlı ama öğrencinin kolayca okuyabileceği (hap bilgi formatında) bir özetini çıkar.
-        2. Bu notlardaki EN KRİTİK, sınavlarda çıkma ihtimali en yüksek ve akılda tutulması zor bilgileri kullanarak MAKSİMUM 10 ADET Flashcard (Bilgi Kartı) hazırla. Gereksiz detaylardan kaçın.
+        Aşağıdaki ders notlarını dikkatlice oku. Senden üç şey istiyorum:
+        1. Bu notların ders adını/konusunu kısa ve öz belirle (ör: Matematik, Fizik, Tarih - notların dilinde).
+        2. Bu notların kapsamlı ama öğrencinin kolayca okuyabileceği (hap bilgi formatında) bir özetini çıkar.
+        3. Bu notlardaki EN KRİTİK, sınavlarda çıkma ihtimali en yüksek ve akılda tutulması zor bilgileri kullanarak MAKSİMUM 10 ADET Flashcard (Bilgi Kartı) hazırla. Gereksiz detaylardan kaçın.
 
-        ÇOK ÖNEMLİ DİL KURALI: 
+        ÇOK ÖNEMLİ DİL KURALI:
         Ders notları hangi dilde yazılmışsa (örneğin İngilizce, Türkçe vb.), özet ve flashcard'lar da KESİNLİKLE metnin orijinal dilinde olmalıdır. Metni başka bir dile çevirme!
 
         KURALLAR:
@@ -145,6 +158,7 @@ async def generate_study_notes(file: UploadFile = File(...)):
 
         İstenen JSON Formatı:
         {{
+          "subject": "Bu notların ders adı/konusu",
           "summary": "Özet metni buraya gelecek. Paragraflar halinde detaylı ama sıkıcı olmayan bir özet...",
           "flashcards": [
             {{
@@ -167,10 +181,12 @@ async def generate_study_notes(file: UploadFile = File(...)):
         # 4. JSON Temizliği
         clean_text = response.text.replace("```json", "").replace("```", "").strip()
         notes_data = json.loads(clean_text)
+        subject = notes_data.pop("subject", "Genel")
 
         return {
             "status": "success",
             "source_file": file.filename,
+            "subject": subject,
             "data": notes_data
         }
 

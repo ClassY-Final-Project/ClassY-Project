@@ -87,12 +87,14 @@ export async function POST(request: Request) {
 
     // 5. PYTHON'DAN GELEN VERİYİ ALMA
     const aiData = await pythonResponse.json();
+    const subject = aiData.subject || "Genel";
 
     // 6. VERİTABANINA KAYIT
     const savedQuiz = await prisma.quiz.create({
       data: {
-        studentId: user.userId, // Senin şemanda 'studentId' kullanılmış
+        studentId: user.userId,
         title: `${file.name} - AI Sınavı`,
+        subject: subject,
         // Soruları QuizQuestion tablosuna tek seferde diziyoruz
         questions: {
           create: aiData.quiz.map((q: any) => ({
