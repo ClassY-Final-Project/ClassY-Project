@@ -83,6 +83,7 @@ export async function POST(request: Request) {
     // Hatırlatma: Python bize { status: "success", data: { summary: "...", flashcards: [...] } } dönüyor
     const aiData = await pythonResponse.json();
     const { summary, flashcards } = aiData.data;
+    const subject = aiData.subject || "Genel";
 
     // 5. Veritabanına Tek Seferde Kaydet (Nested Write)
     const savedNote = await prisma.studyNote.create({
@@ -90,7 +91,8 @@ export async function POST(request: Request) {
         studentId: user.userId,
         fileName: file.name,
         summary: summary,
-        processedStatus: "COMPLETED", // İşlem bittiği için durumu tamamlandı yapıyoruz
+        subject: subject,
+        processedStatus: "COMPLETED",
 
         // Flashcard tablosuna kartları tek seferde diziyoruz
         flashcards: {
