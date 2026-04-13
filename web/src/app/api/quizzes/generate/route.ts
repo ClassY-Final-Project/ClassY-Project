@@ -56,6 +56,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const questionCount = formData.get("question_count") || "10";
+    const subjectOverride = (formData.get("subject_override") as string | null) || null;
 
     if (!file) {
       return NextResponse.json(
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
 
     // 5. PYTHON'DAN GELEN VERİYİ ALMA
     const aiData = await pythonResponse.json();
-    const subject = aiData.subject || "Genel";
+    const subject = subjectOverride || aiData.subject || "Genel";
 
     // 6. VERİTABANINA KAYIT
     const savedQuiz = await prisma.quiz.create({

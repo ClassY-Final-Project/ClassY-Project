@@ -104,7 +104,7 @@ export default function Navbar() {
               Çıkış
             </button>
           </div>
-        ) : (
+        ) : pathname !== "/" ? (
           <div className="flex items-center gap-3">
             <Link
               href="/login"
@@ -119,7 +119,7 @@ export default function Navbar() {
               Kayıt Ol
             </Link>
           </div>
-        )}
+        ) : null}
       </div>
     </header>
   );

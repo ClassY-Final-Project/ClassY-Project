@@ -38,7 +38,7 @@ def read_root():
 #def ask_gemini(request: PromptRequest):
 #    try:
 #        response = client.models.generate_content(
-#            model='gemini-2.5-flash',
+#            model='gemini-2.0-flash-lite',
 #            contents=request.text
 #        )
 #        return {"status": "success", "answer": response.text}
@@ -98,7 +98,7 @@ async def generate_quiz(
         """
 
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.0-flash-lite',
             contents=prompt
         )
 
@@ -174,7 +174,7 @@ async def generate_study_notes(file: UploadFile = File(...)):
 
         # 3. Gemini'a gönder
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.0-flash-lite',
             contents=prompt
         )
         
