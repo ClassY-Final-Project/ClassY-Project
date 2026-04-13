@@ -21,9 +21,9 @@ export async function GET(request: Request) {
     const filter = searchParams.get("filter"); // "live" | "scheduled" | "ended" | "history"
 
     if (filter === "history") {
-      // Katıldığı dersler (öğrenci veya eğitmen)
+      // Katıldığı ve bitmiş dersler (öğrenci veya eğitmen)
       const participations = await (prisma as any).roomParticipant.findMany({
-        where: { userId: user.userId },
+        where: { userId: user.userId, room: { status: "ENDED" } },
         include: {
           room: {
             include: { instructor: { select: { id: true, fullName: true, email: true } }, _count: { select: { participants: true } } },

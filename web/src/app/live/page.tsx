@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
@@ -16,7 +16,7 @@ interface LiveRoom {
   startedAt: string | null;
   endedAt: string | null;
   createdAt: string;
-  joinedAt?: string;
+  joinedAt?: string | null;
   instructor: { id: string; fullName: string | null; email: string };
   _count?: { participants: number };
 }
@@ -26,8 +26,10 @@ type Tab = "live" | "scheduled" | "history";
 export default function LiveRoomsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [tab, setTab] = useState<Tab>("live");
+  const [endedNotice, setEndedNotice] = useState(searchParams.get("ended") === "1");
   const [rooms, setRooms] = useState<LiveRoom[]>([]);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
@@ -48,6 +50,13 @@ export default function LiveRoomsPage() {
     if (!user) return;
     loadRooms();
   }, [user, tab]);
+
+  // Canlı sekmesinde otomatik yenileme
+  useEffect(() => {
+    if (tab !== "live") return;
+    const interval = setInterval(loadRooms, 15000);
+    return () => clearInterval(interval);
+  }, [tab]);
 
   async function loadRooms() {
     setFetching(true);
@@ -160,6 +169,12 @@ export default function LiveRoomsPage() {
           ))}
         </div>
 
+        {endedNotice && (
+          <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-700 dark:text-amber-400 text-sm flex items-center justify-between">
+            <span>Katıldığın canlı ders eğitmen tarafından sona erdirildi.</span>
+            <button onClick={() => setEndedNotice(false)} className="ml-3 text-amber-400 hover:text-amber-600">✕</button>
+          </div>
+        )}
         {error && (
           <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm">{error}</div>
         )}
@@ -195,14 +210,38 @@ export default function LiveRoomsPage() {
                   </span>
                 </div>
 
+                {/* Zamanlama bilgileri */}
                 {room.scheduledAt && room.status === "SCHEDULED" && (
                   <p className="text-xs text-zinc-400 mb-3">
-                    {new Date(room.scheduledAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
+                    📅 {new Date(room.scheduledAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
                   </p>
                 )}
-                {room.joinedAt && (
+                {room.status === "ENDED" && (
+                  <div className="mb-3 space-y-1">
+                    {room.startedAt && (
+                      <p className="text-xs text-zinc-400">
+                        📅 {new Date(room.startedAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    )}
+                    {room.startedAt && room.endedAt && (
+                      <p className="text-xs text-zinc-400">
+                        ⏱ Süre: {(() => {
+                          const diffMs = new Date(room.endedAt).getTime() - new Date(room.startedAt).getTime();
+                          const totalMin = Math.floor(diffMs / 60000);
+                          const h = Math.floor(totalMin / 60);
+                          const m = totalMin % 60;
+                          return h > 0 ? `${h} sa ${m} dk` : `${m} dk`;
+                        })()}
+                      </p>
+                    )}
+                    {room.joinedAt && (
+                      <p className="text-xs text-indigo-400/70">✓ Katıldın</p>
+                    )}
+                  </div>
+                )}
+                {room.status === "LIVE" && room.joinedAt && (
                   <p className="text-xs text-zinc-400 mb-3">
-                    Katıldın: {new Date(room.joinedAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long" })}
+                    Daha önce katıldın
                   </p>
                 )}
 
@@ -220,7 +259,7 @@ export default function LiveRoomsPage() {
                     </button>
                   )}
                   {room.status === "ENDED" && (
-                    <span className="text-xs text-zinc-400 py-2">Ders tamamlandı</span>
+                    <span className="text-xs text-zinc-500 py-2 italic">Ders sona erdi</span>
                   )}
                 </div>
               </div>
