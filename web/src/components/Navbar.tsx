@@ -93,10 +93,17 @@ export default function Navbar() {
 
         {/* Auth */}
         {user ? (
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-zinc-500 dark:text-zinc-400 hidden sm:block">
-              {user.fullName || user.email}
-            </span>
+          <div className="flex items-center gap-3">
+            <Link href="/profile"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              title="Profilim">
+              <div className="w-7 h-7 rounded-lg bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                {(user.fullName || user.email || "?").split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
+              </div>
+              <span className="text-sm text-zinc-600 dark:text-zinc-400 hidden sm:block max-w-28 truncate">
+                {user.fullName || user.email}
+              </span>
+            </Link>
             <button
               onClick={logout}
               className="text-sm px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-red-300 hover:text-red-600 dark:hover:text-red-400 transition-colors"
