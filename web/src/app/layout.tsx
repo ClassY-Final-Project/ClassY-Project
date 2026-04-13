@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import { ToastProvider } from "@/components/Toast";
+import PageTransition from "@/components/PageTransition";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +34,7 @@ export default function RootLayout({
         <AuthProvider>
           <ToastProvider>
             <Navbar />
-            {children}
+            <PageTransition>{children}</PageTransition>
           </ToastProvider>
         </AuthProvider>
       </body>
