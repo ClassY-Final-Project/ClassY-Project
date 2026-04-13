@@ -49,13 +49,25 @@ export default function Navbar() {
 
   if (loading) return null;
 
-  const navLinks = user ? [
-    { href: "/dashboard", label: "Çalışma Alanım" },
-    { href: "/study", label: "AI Asistan" },
-    { href: "/live", label: "🔴 Canlı Ders" },
-    { href: "/instructors", label: "Eğitmenler" },
-    { href: "/courses", label: "Kurslar" },
-  ] : [];
+  const isInstructor = user?.role === "INSTRUCTOR" || user?.role === "ADMIN";
+
+  const navLinks = user
+    ? isInstructor
+      ? [
+          { href: "/instructor/dashboard", label: "Panelim" },
+          { href: "/instructor/quiz", label: "Quiz Oluştur" },
+          { href: "/instructor/stats", label: "İstatistikler" },
+          { href: "/live", label: "🔴 Canlı Dersler" },
+          { href: "/courses", label: "Kurslar" },
+        ]
+      : [
+          { href: "/dashboard", label: "Çalışma Alanım" },
+          { href: "/study", label: "AI Asistan" },
+          { href: "/live", label: "🔴 Canlı Ders" },
+          { href: "/instructors", label: "Eğitmenler" },
+          { href: "/courses", label: "Kurslar" },
+        ]
+    : [];
 
   return (
     <>

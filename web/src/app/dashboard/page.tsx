@@ -8,6 +8,15 @@ import { getStudyArea, deleteNote, deleteQuiz, SubjectGroup } from "@/lib/apiCli
 import { DashboardSkeleton } from "@/components/Skeleton";
 import { useToast } from "@/components/Toast";
 
+interface AssignedQuiz {
+  id: string;
+  title: string;
+  subject: string;
+  score: number | null;
+  createdAt: string;
+  instructor: { fullName: string | null; email: string };
+}
+
 export default function DashboardPage() {
   const { user, token, loading } = useAuth();
   const router = useRouter();
@@ -16,7 +25,9 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState<SubjectGroup[]>([]);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
+  const [assignedQuizzes, setAssignedQuizzes] = useState<AssignedQuiz[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const [sideTab, setSideTab] = useState<"dersler" | "gelen">("dersler");
 
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editSubject, setEditSubject] = useState("");
@@ -27,12 +38,28 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
+    if (!loading && user && (user.role === "INSTRUCTOR" || user.role === "ADMIN")) {
+      router.replace("/instructor/dashboard");
+    }
   }, [user, loading, router]);
 
   useEffect(() => {
     if (!token) return;
     loadDashboard();
+    loadAssignedQuizzes();
   }, [token]);
+
+  async function loadAssignedQuizzes() {
+    try {
+      const res = await fetch("/api/instructor/quiz/assigned", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      setAssignedQuizzes(json.quizzes || []);
+    } catch {
+      // sessizce geç
+    }
+  }
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -164,9 +191,22 @@ export default function DashboardPage() {
                   +
                 </Link>
               </div>
-              <nav className="p-2">
+              {/* Sol panel sekmeleri */}
+            <div className="flex p-2 gap-1">
+              {([["dersler", "Derslerim"], ["gelen", "Gelen Quizler"]] as const).map(([id, label]) => (
+                <button key={id} onClick={() => setSideTab(id)}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${sideTab === id ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"}`}>
+                  {label}
+                  {id === "gelen" && assignedQuizzes.filter(q => q.score === null).length > 0 && (
+                    <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-1.5">{assignedQuizzes.filter(q => q.score === null).length}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <nav className="p-2">
                 {error && <p className="text-xs text-red-500 px-2 py-1">{error}</p>}
-                {dashboard.map((group) => {
+                {sideTab === "dersler" && dashboard.map((group) => {
                   const isActive = group.subject === selectedSubject;
                   const total = group.items.notes.length + group.items.quizzes.length;
                   return (
@@ -188,6 +228,30 @@ export default function DashboardPage() {
                     </button>
                   );
                 })}
+
+                {sideTab === "gelen" && (
+                  assignedQuizzes.length === 0 ? (
+                    <p className="text-xs text-zinc-400 px-3 py-4 text-center">Gelen quiz yok.</p>
+                  ) : (
+                    assignedQuizzes.map((q) => (
+                      <Link key={q.id} href={`/study/quiz/${q.id}`}
+                        className="w-full text-left px-3 py-2.5 rounded-xl mb-1 flex items-center gap-3 transition-all text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 hover:text-zinc-900 dark:hover:text-white">
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400">
+                          📋
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{q.title}</p>
+                          <p className="text-xs opacity-60 truncate">{q.instructor.fullName || q.instructor.email}</p>
+                        </div>
+                        {q.score !== null ? (
+                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">%{q.score}</span>
+                        ) : (
+                          <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                        )}
+                      </Link>
+                    ))
+                  )
+                )}
               </nav>
             </aside>
 
