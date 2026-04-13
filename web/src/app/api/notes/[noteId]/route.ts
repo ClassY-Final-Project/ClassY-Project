@@ -28,6 +28,40 @@ import { prisma } from "@/lib/prisma";
  *       500:
  *         description: Sunucu tarafında hata
  */
+// PATCH /api/notes/[noteId] — Notun konusunu değiştir
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ noteId: string }> },
+) {
+  try {
+    const { user, error } = verifyToken(request);
+    if (error) return error;
+    if (!user) return NextResponse.json({ error: "Kullanıcı doğrulanamadı." }, { status: 401 });
+
+    const { noteId } = await params;
+    const { subject } = await request.json();
+
+    if (!subject || !subject.trim()) {
+      return NextResponse.json({ error: "Konu adı boş olamaz." }, { status: 400 });
+    }
+
+    const note = await prisma.studyNote.findUnique({ where: { id: noteId } });
+    if (!note || note.studentId !== user.userId) {
+      return NextResponse.json({ error: "Not bulunamadı veya yetkiniz yok." }, { status: 404 });
+    }
+
+    const updated = await prisma.studyNote.update({
+      where: { id: noteId },
+      data: { subject: subject.trim() },
+    });
+
+    return NextResponse.json({ message: "Konu güncellendi.", subject: updated.subject });
+  } catch (err: any) {
+    console.error("Not Güncelleme Hatası:", err);
+    return NextResponse.json({ error: "Güncelleme sırasında hata oluştu." }, { status: 500 });
+  }
+}
+
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ noteId: string }> },

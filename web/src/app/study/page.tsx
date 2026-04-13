@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { generateNotes, generateQuiz, GeneratedNote, GeneratedQuizItem } from "@/lib/apiClient";
+import { generateNotes, generateQuiz, getStudyArea, GeneratedNote, GeneratedQuizItem } from "@/lib/apiClient";
 
 type Tab = "notes" | "quiz";
+type SubjectMode = "auto" | "existing" | "new";
 
 export default function StudyPage() {
   const { user, loading } = useAuth();
@@ -15,12 +16,18 @@ export default function StudyPage() {
   const [tab, setTab] = useState<Tab>("notes");
   const [questionCount, setQuestionCount] = useState(10);
 
+  // Ders seçimi
+  const [existingSubjects, setExistingSubjects] = useState<string[]>([]);
+  const [subjectMode, setSubjectMode] = useState<SubjectMode>("auto");
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [newSubjectName, setNewSubjectName] = useState<string>("");
+
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Sonuçlar
   const [noteResult, setNoteResult] = useState<GeneratedNote | null>(null);
-  const [quizResult, setQuizResult] = useState<{ quizId: string; items: GeneratedQuizItem[] } | null>(null);
+  const [quizResult, setQuizResult] = useState<{ quizId: string; items: GeneratedQuizItem[]; subject?: string } | null>(null);
 
   // Quiz etkileşimi
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
@@ -33,6 +40,18 @@ export default function StudyPage() {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
 
+  // Mevcut dersleri yükle
+  useEffect(() => {
+    if (!user) return;
+    getStudyArea().then((res) => {
+      if (res.ok && res.dashboard) {
+        const subjects = res.dashboard.map((g) => g.subject).filter(Boolean);
+        setExistingSubjects(subjects);
+        if (subjects.length > 0) setSelectedSubject(subjects[0]);
+      }
+    });
+  }, [user]);
+
   function handleFileSelect(selected: File | null) {
     if (!selected) return;
     if (selected.type !== "application/pdf") {
@@ -41,7 +60,6 @@ export default function StudyPage() {
     }
     setFile(selected);
     setError(null);
-    // Önceki sonuçları temizle
     setNoteResult(null);
     setQuizResult(null);
     setSelectedAnswers({});
@@ -54,8 +72,19 @@ export default function StudyPage() {
     handleFileSelect(e.dataTransfer.files[0] ?? null);
   }
 
+  // Kullanıcının seçtiği konuyu API'ye gönder (veya auto için boş — AI tespit edecek)
+  function getSubjectForAPI(): string | undefined {
+    if (subjectMode === "auto") return undefined;
+    if (subjectMode === "existing") return selectedSubject || undefined;
+    if (subjectMode === "new") return newSubjectName.trim() || undefined;
+  }
+
   async function handleGenerate() {
     if (!file) return;
+    if (subjectMode === "new" && !newSubjectName.trim()) {
+      setError("Lütfen yeni ders adını girin.");
+      return;
+    }
     setWorking(true);
     setError(null);
     setNoteResult(null);
@@ -64,23 +93,35 @@ export default function StudyPage() {
     setShowResults(false);
     setFlippedCards(new Set());
 
+    const subjectOverride = getSubjectForAPI();
+
     if (tab === "notes") {
-      const result = await generateNotes(file);
+      const result = await generateNotes(file, subjectOverride);
       if (result.ok && result.data) {
         setNoteResult(result.data);
+        // Yeni ders oluşturulduysa listeyi güncelle
+        refreshSubjects();
       } else {
         setError(result.error || "Özet oluşturulamadı.");
       }
     } else {
-      const result = await generateQuiz(file, questionCount);
+      const result = await generateQuiz(file, questionCount, subjectOverride);
       if (result.ok && result.data) {
         setQuizResult({ quizId: result.data.quizId, items: result.data.quiz });
+        refreshSubjects();
       } else {
         setError(result.error || "Quiz oluşturulamadı.");
       }
     }
 
     setWorking(false);
+  }
+
+  async function refreshSubjects() {
+    const res = await getStudyArea();
+    if (res.ok && res.dashboard) {
+      setExistingSubjects(res.dashboard.map((g) => g.subject).filter(Boolean));
+    }
   }
 
   function toggleCard(index: number) {
@@ -98,7 +139,7 @@ export default function StudyPage() {
   if (loading) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <main className="max-w-4xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">AI Asistan</h1>
@@ -143,8 +184,69 @@ export default function StudyPage() {
           )}
         </div>
 
+        {/* Ders Seçimi */}
+        <div className="mt-5 p-4 bg-white dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 rounded-2xl">
+          <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">
+            Hangi derse eklensin?
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSubjectMode("auto")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                subjectMode === "auto"
+                  ? "bg-indigo-600 text-white border-indigo-600"
+                  : "border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-indigo-300"
+              }`}
+            >
+              ✨ AI Otomatik Tespit
+            </button>
+
+            {existingSubjects.map((s) => (
+              <button
+                key={s}
+                onClick={() => { setSubjectMode("existing"); setSelectedSubject(s); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                  subjectMode === "existing" && selectedSubject === s
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-indigo-300"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+
+            <button
+              onClick={() => setSubjectMode("new")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                subjectMode === "new"
+                  ? "bg-indigo-600 text-white border-indigo-600"
+                  : "border-dashed border-zinc-300 dark:border-zinc-600 text-zinc-500 dark:text-zinc-400 hover:border-indigo-400"
+              }`}
+            >
+              + Yeni Ders
+            </button>
+          </div>
+
+          {subjectMode === "new" && (
+            <input
+              type="text"
+              value={newSubjectName}
+              onChange={(e) => setNewSubjectName(e.target.value)}
+              placeholder="Ders adı girin (ör. Fizik, Kimya...)"
+              autoFocus
+              className="mt-3 w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            />
+          )}
+
+          {subjectMode === "auto" && (
+            <p className="mt-2 text-xs text-zinc-400">
+              Yapay zeka PDF içeriğini okuyarak dersin konusunu otomatik belirleyecek
+            </p>
+          )}
+        </div>
+
         {/* Kontroller */}
-        <div className="mt-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+        <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
           {/* Sekmeler */}
           <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 gap-1">
             {(["notes", "quiz"] as Tab[]).map((t) => (
@@ -162,7 +264,7 @@ export default function StudyPage() {
             ))}
           </div>
 
-          {/* Soru sayısı (sadece quiz modunda) */}
+          {/* Soru sayısı */}
           {tab === "quiz" && (
             <div className="flex items-center gap-2">
               <label className="text-sm text-zinc-600 dark:text-zinc-400">Soru:</label>
@@ -207,16 +309,21 @@ export default function StudyPage() {
           </div>
         )}
 
-        {/* ─── Özet & Flashcard Sonucu ─────────────────────────────────────────── */}
+        {/* ─── Özet & Flashcard Sonucu ─── */}
         {!working && noteResult && (
           <div className="mt-10 space-y-10">
-            {/* Kaydedildi bildirimi */}
             <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl text-green-700 dark:text-green-400 text-sm flex items-center gap-2">
               <span>✓</span>
-              <span>Notlar çalışma alanınıza kaydedildi.</span>
+              <span>
+                {noteResult.subject && noteResult.subject !== "Genel"
+                  ? <><strong>{noteResult.subject}</strong> dersine kaydedildi.{" "}</>
+                  : "Notlar çalışma alanınıza kaydedildi. "}
+                <button onClick={() => router.push("/dashboard")} className="underline font-medium">
+                  Çalışma alanına git →
+                </button>
+              </span>
             </div>
 
-            {/* Özet */}
             <div>
               <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-4">📝 Özet</h2>
               <div className="bg-white dark:bg-zinc-800/50 rounded-2xl p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap text-sm">
@@ -224,19 +331,16 @@ export default function StudyPage() {
               </div>
             </div>
 
-            {/* Flashcardlar */}
             {noteResult.flashcards.length > 0 && (
               <div>
-                <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-2">
-                  🃏 Flashcardlar
-                </h2>
+                <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-2">🃏 Flashcardlar</h2>
                 <p className="text-sm text-zinc-400 mb-4">Kartlara tıklayarak çevirin</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {noteResult.flashcards.map((card, i) => (
                     <div
                       key={i}
                       onClick={() => toggleCard(i)}
-                      className={`min-h-[130px] p-5 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md border flex flex-col justify-center ${
+                      className={`min-h-32 p-5 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md border flex flex-col justify-center ${
                         flippedCards.has(i)
                           ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-700"
                           : "bg-white dark:bg-zinc-800/50 border-zinc-100 dark:border-zinc-800"
@@ -256,18 +360,14 @@ export default function StudyPage() {
           </div>
         )}
 
-        {/* ─── Quiz Sonucu ─────────────────────────────────────────────────────── */}
+        {/* ─── Quiz Sonucu ─── */}
         {!working && quizResult && (
           <div className="mt-10">
-            {/* Kaydedildi bildirimi */}
             <div className="p-3 mb-6 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl text-green-700 dark:text-green-400 text-sm flex items-center gap-2">
               <span>✓</span>
               <span>
                 Quiz çalışma alanınıza kaydedildi.{" "}
-                <button
-                  onClick={() => router.push(`/study/quiz/${quizResult.quizId}`)}
-                  className="underline font-medium"
-                >
+                <button onClick={() => router.push(`/study/quiz/${quizResult.quizId}`)} className="underline font-medium">
                   Detaylı görüntüle →
                 </button>
               </span>

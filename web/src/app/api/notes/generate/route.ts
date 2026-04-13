@@ -49,6 +49,7 @@ export async function POST(request: Request) {
     // 2. Dosyayı Yakala
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
+    const subjectOverride = (formData.get("subject_override") as string | null) || null;
 
     if (!file) {
       return NextResponse.json(
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
     // Hatırlatma: Python bize { status: "success", data: { summary: "...", flashcards: [...] } } dönüyor
     const aiData = await pythonResponse.json();
     const { summary, flashcards } = aiData.data;
-    const subject = aiData.subject || "Genel";
+    const subject = subjectOverride || aiData.subject || "Genel";
 
     // 5. Veritabanına Tek Seferde Kaydet (Nested Write)
     const savedNote = await prisma.studyNote.create({
@@ -109,6 +110,7 @@ export async function POST(request: Request) {
       {
         message: "Özet ve çalışma kartları başarıyla üretilip kaydedildi!",
         noteId: savedNote.id,
+        subject: subject,
         data: aiData.data,
       },
       { status: 200 },

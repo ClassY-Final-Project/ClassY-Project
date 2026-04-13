@@ -66,17 +66,18 @@ export async function getStudyArea(): Promise<{
 
 export interface GeneratedNote {
   noteId: string;
+  subject: string;
   summary: string;
   flashcards: { front: string; back: string }[];
 }
 
 export async function generateNotes(
   file: File,
-  subject?: string
+  subjectOverride?: string
 ): Promise<{ ok: boolean; data?: GeneratedNote; error?: string }> {
   const formData = new FormData();
   formData.append("file", file);
-  if (subject) formData.append("subject", subject);
+  if (subjectOverride) formData.append("subject_override", subjectOverride);
 
   const res = await fetch("/api/notes/generate", {
     method: "POST",
@@ -87,7 +88,7 @@ export async function generateNotes(
   if (!res.ok) return { ok: false, error: json.error };
   return {
     ok: true,
-    data: { noteId: json.noteId, ...json.data },
+    data: { noteId: json.noteId, subject: json.subject, ...json.data },
   };
 }
 
@@ -130,12 +131,12 @@ export interface GeneratedQuiz {
 export async function generateQuiz(
   file: File,
   questionCount = 10,
-  subject?: string
+  subjectOverride?: string
 ): Promise<{ ok: boolean; data?: GeneratedQuiz; error?: string }> {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("question_count", questionCount.toString());
-  if (subject) formData.append("subject", subject);
+  if (subjectOverride) formData.append("subject_override", subjectOverride);
 
   const res = await fetch("/api/quizzes/generate", {
     method: "POST",
