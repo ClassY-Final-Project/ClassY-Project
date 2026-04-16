@@ -34,6 +34,7 @@ model User {
   roomParticipations RoomParticipant[]
   subscriptions      Subscription[]    @relation("StudentSubscriptions")
   subscribers        Subscription[]    @relation("InstructorSubscribers")
+  assignedQuizzes    Quiz[]            @relation("AssignedQuizzes")
 }
 
 // --- 2. MARKETPLACE ---
@@ -108,17 +109,19 @@ model Flashcard {
 }
 
 model Quiz {
-  id        String   @id @default(uuid())
-  noteId    String?
-  studentId String
-  subject   String   @default("Genel")
-  title     String
-  score     Int?
-  createdAt DateTime @default(now())
+  id                     String   @id @default(uuid())
+  noteId                 String?
+  studentId              String
+  subject                String   @default("Genel")
+  title                  String
+  score                  Int?
+  createdAt              DateTime @default(now())
+  assignedByInstructorId String?
 
-  note      StudyNote?     @relation(fields: [noteId], references: [id])
-  student   User           @relation(fields: [studentId], references: [id])
-  questions QuizQuestion[]
+  note                 StudyNote?     @relation(fields: [noteId], references: [id])
+  student              User           @relation(fields: [studentId], references: [id])
+  assignedByInstructor User?          @relation("AssignedQuizzes", fields: [assignedByInstructorId], references: [id])
+  questions            QuizQuestion[]
 }
 
 model QuizQuestion {
