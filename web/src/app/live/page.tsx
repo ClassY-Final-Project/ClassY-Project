@@ -28,7 +28,7 @@ export default function LiveRoomsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [tab, setTab] = useState<Tab>("live");
+  const [tab, setTab] = useState<Tab>((searchParams.get("tab") as Tab) || "live");
   const [endedNotice, setEndedNotice] = useState(searchParams.get("ended") === "1");
   const [rooms, setRooms] = useState<LiveRoom[]>([]);
   const [fetching, setFetching] = useState(true);

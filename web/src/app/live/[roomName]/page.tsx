@@ -70,7 +70,7 @@ export default function LiveRoomPage() {
           if (json.status === "ENDED") {
             clearInterval(poll);
             if (timerRef.current) clearInterval(timerRef.current);
-            router.replace("/live?ended=1");
+            router.replace("/live?ended=1&tab=history");
           }
         }
       } catch { /* ignore network errors */ }
@@ -111,7 +111,7 @@ export default function LiveRoomPage() {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     if (res.ok) {
-      router.replace("/live");
+      router.replace("/live?tab=history");
     } else {
       const j = await res.json();
       setError(j.error);
