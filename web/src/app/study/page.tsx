@@ -273,7 +273,7 @@ export default function StudyPage() {
               <label className="text-sm text-zinc-600 dark:text-zinc-400">Soru:</label>
               <input
                 type="range"
-                min={5}
+                min={10}
                 max={20}
                 value={questionCount}
                 onChange={(e) => setQuestionCount(Number(e.target.value))}
