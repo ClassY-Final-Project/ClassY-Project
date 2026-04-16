@@ -54,13 +54,13 @@ export default function InstructorQuizPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch("/api/instructors/subscriptions", { headers: { Authorization: `Bearer ${token}` } })
+    fetch("/api/instructor/subscribers", { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(j => {
-        const subs: Subscriber[] = (j.subscriptions || []).map((s: any) => ({
-          id: s.student?.id || s.studentId,
-          fullName: s.student?.fullName || null,
-          email: s.student?.email || "",
+        const subs: Subscriber[] = (j.students || []).map((s: any) => ({
+          id: s.id,
+          fullName: s.fullName,
+          email: s.email,
         })).filter((s: Subscriber) => s.id);
         setSubscribers(subs);
       });
@@ -233,7 +233,7 @@ export default function InstructorQuizPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <label className="text-sm text-zinc-600 dark:text-zinc-400">Soru sayısı:</label>
-                  <input type="range" min={5} max={20} value={questionCount} onChange={e => setQuestionCount(Number(e.target.value))} className="flex-1 accent-indigo-600" />
+                  <input type="range" min={10} max={20} value={questionCount} onChange={e => setQuestionCount(Number(e.target.value))} className="flex-1 accent-indigo-600" />
                   <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 w-6 text-right">{questionCount}</span>
                 </div>
                 <button onClick={handleGenerate} disabled={!file || generating}
@@ -288,9 +288,27 @@ export default function InstructorQuizPage() {
                   + Soru Ekle
                 </button>
 
+                {(() => {
+                  const missingTitle = !quizTitle.trim();
+                  const missingQuestion = questions.some(q => !q.question.trim());
+                  const missingAnswer = questions.some(q => !q.answer.trim());
+                  const missingOptions = questions.some(q => q.options.filter(o => o.trim()).length < 2);
+                  if (missingTitle || missingQuestion || missingOptions || missingAnswer) {
+                    return (
+                      <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3 space-y-1">
+                        <p className="font-semibold">Devam etmek için eksikler var:</p>
+                        {missingTitle && <p>• Quiz başlığı girilmedi</p>}
+                        {missingQuestion && <p>• Soru metni boş olan soru var</p>}
+                        {missingOptions && <p>• En az 2 şık doldurulmalı</p>}
+                        {missingAnswer && <p>• Doğru cevap seçilmedi (şıkları doldurunca dropdown aktif olur)</p>}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 <button onClick={() => setStep("assign")}
-                  disabled={!quizTitle.trim() || questions.some(q => !q.question.trim())}
-                  className="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 disabled:opacity-40 transition-all shadow-sm">
+                  disabled={!quizTitle.trim() || questions.some(q => !q.question.trim() || q.options.filter(o => o.trim()).length < 2 || !q.answer.trim())}
+                  className="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">
                   Devam Et — Öğrenci Seç →
                 </button>
               </div>
@@ -312,9 +330,15 @@ export default function InstructorQuizPage() {
               </div>
 
               {subscribers.length === 0 ? (
-                <div className="text-center py-8">
+                <div className="text-center py-8 space-y-2">
                   <p className="text-3xl mb-2">👨‍🎓</p>
-                  <p className="text-sm text-zinc-400">Henüz abone öğrenciniz yok.</p>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">Henüz abone öğrenciniz yok.</p>
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                    Öğrencilerin quiz alabilmesi için önce sana abone olmaları gerekiyor.
+                  </p>
+                  <p className="text-xs text-indigo-500 dark:text-indigo-400">
+                    Öğrenci hesabıyla <strong>/instructors</strong> sayfasına gidip seni bularak abone olabilirler.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">

@@ -34,21 +34,23 @@ export default function InstructorDashboardPage() {
   async function loadStats() {
     setFetching(true);
     try {
-      const [subRes, roomRes] = await Promise.all([
-        fetch("/api/instructors/subscriptions", { headers: { Authorization: `Bearer ${token}` } }),
+      const [subRes, roomRes, quizRes] = await Promise.all([
+        fetch("/api/instructor/subscribers", { headers: { Authorization: `Bearer ${token}` } }),
         fetch("/api/live-rooms?filter=history", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/instructor/quiz/sent-count", { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const subJson = await subRes.json();
       const roomJson = await roomRes.json();
+      const quizJson = quizRes.ok ? await quizRes.json() : { count: 0 };
 
       setStats({
-        subscriberCount: subJson.subscriptions?.length ?? 0,
+        subscriberCount: subJson.students?.length ?? 0,
         liveRoomCount: roomJson.rooms?.length ?? 0,
-        quizSentCount: 0,
-        recentSubscribers: (subJson.subscriptions || []).slice(0, 5).map((s: any) => ({
-          id: s.student?.id || s.id,
-          fullName: s.student?.fullName || null,
-          email: s.student?.email || "",
+        quizSentCount: quizJson.count ?? 0,
+        recentSubscribers: (subJson.students || []).slice(0, 5).map((s: any) => ({
+          id: s.id,
+          fullName: s.fullName,
+          email: s.email,
           subscribedAt: s.subscribedAt,
         })),
         recentRooms: (roomJson.rooms || []).slice(0, 4),
