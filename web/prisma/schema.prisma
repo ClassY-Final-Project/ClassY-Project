@@ -15,18 +15,18 @@ enum Role {
 }
 
 model User {
-  id            String       @id @default(uuid())
-  email         String       @unique
-  passwordHash  String
-  fullName      String?
-  role          Role         @default(STUDENT)
-  createdAt     DateTime     @default(now())
-  
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String?
+  role         Role     @default(STUDENT)
+  createdAt    DateTime @default(now())
+
   // Relations
-  courses       Course[]     @relation("InstructorCourses")
-  enrollments   Enrollment[]
-  studyNotes    StudyNote[]
-  quizzes       Quiz[]
+  courses     Course[]     @relation("InstructorCourses")
+  enrollments Enrollment[]
+  studyNotes  StudyNote[]
+  quizzes     Quiz[]
 }
 
 // --- 2. MARKETPLACE ---
@@ -39,21 +39,82 @@ model Course {
   thumbnailUrl  String?
   isPublished   Boolean      @default(false)
   createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  instructor    User         @relation("InstructorCourses", fields: [instructorId], references: [id])
-  lessons       Lesson[]
-  enrollments   Enrollment[]
+  instructor  User            @relation("InstructorCourses", fields: [instructorId], references: [id])
+  sections    CourseSection[]
+  lessons     Lesson[]
+  enrollments Enrollment[]
+
+  @@index([instructorId])
+  @@map("courses")
+}
+
+enum LessonContentType {
+  VIDEO_URL
+  UPLOADED_VIDEO
+  PDF
+  TEXT
+  ASSIGNMENT_FILE
+  ASSIGNMENT_TEXT
+}
+
+model CourseSection {
+  id         String   @id @default(uuid())
+  courseId   String
+  title      String
+  orderIndex Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@unique([courseId, orderIndex])
+  @@unique([id, courseId])
+  @@index([courseId])
+  @@map("course_sections")
 }
 
 model Lesson {
-  id          String   @id @default(uuid())
-  courseId    String
-  title       String
-  videoUrl    String
-  duration    Int      // Saniye cinsinden
-  orderIndex  Int
+  id         String   @id @default(uuid())
+  courseId   String
+  sectionId  String
+  title      String
+  duration   Int? // Saniye cinsinden
+  orderIndex Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  course      Course   @relation(fields: [courseId], references: [id])
+  course   Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  section  CourseSection   @relation(fields: [sectionId, courseId], references: [id, courseId], onDelete: Cascade)
+  contents LessonContent[]
+
+  @@unique([sectionId, orderIndex])
+  @@index([courseId])
+  @@index([sectionId])
+  @@index([sectionId, courseId])
+  @@map("lessons")
+}
+
+model LessonContent {
+  id          String            @id @default(uuid())
+  lessonId    String
+  contentType LessonContentType
+  title       String?
+  assetUrl    String?
+  textContent String?
+  mimeType    String?
+  duration    Int?
+  orderIndex  Int
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, orderIndex])
+  @@index([lessonId])
+  @@map("lesson_contents")
 }
 
 model Enrollment {
@@ -83,21 +144,8 @@ model StudyNote {
   processedStatus NoteStatus       @default(PENDING)
   uploadedAt      DateTime         @default(now())
 
-  student         User             @relation(fields: [studentId], references: [id])
-  embeddings      NoteEmbedding[]
-  quizzes         Quiz[]
-}
-
-// Vektör desteği için özel model (PostgreSQL pgvector gerektirir)
-// Şimdilik standart tablo gibi tanımlıyoruz, vector tipi için raw SQL gerekecek.
-model NoteEmbedding {
-  id           String    @id @default(uuid())
-  noteId       String
-  contentChunk String
-  // embedding vector(1536) -> Prisma henüz native vector desteklemiyor, bunu unsupported ile geçiyoruz
-  embedding    Unsupported("vector(1536)")? 
-
-  note         StudyNote @relation(fields: [noteId], references: [id])
+  student    User        @relation(fields: [studentId], references: [id])
+  quizzes    Quiz[]
 }
 
 model Quiz {
