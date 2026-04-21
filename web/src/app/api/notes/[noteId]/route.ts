@@ -28,6 +28,33 @@ import { prisma } from "@/lib/prisma";
  *       500:
  *         description: Sunucu tarafında hata
  */
+// GET /api/notes/[noteId] — Not detayını getir
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ noteId: string }> },
+) {
+  try {
+    const { user, error } = verifyToken(request);
+    if (error) return error;
+    if (!user) return NextResponse.json({ error: "Kullanıcı doğrulanamadı." }, { status: 401 });
+
+    const { noteId } = await params;
+    const note = await prisma.studyNote.findUnique({
+      where: { id: noteId },
+      include: { flashcards: true },
+    });
+
+    if (!note || note.studentId !== user.userId) {
+      return NextResponse.json({ error: "Not bulunamadı." }, { status: 404 });
+    }
+
+    return NextResponse.json({ note });
+  } catch (err: any) {
+    console.error("Not Getirme Hatası:", err);
+    return NextResponse.json({ error: "Not getirilemedi." }, { status: 500 });
+  }
+}
+
 // PATCH /api/notes/[noteId] — Notun konusunu değiştir
 export async function PATCH(
   request: Request,

@@ -16,12 +16,11 @@ enum Role {
 }
 
 model User {
-<<<<<<< HEAD
-  id           String  @id @default(uuid())
-  email        String  @unique
+  id           String   @id @default(uuid())
+  email        String   @unique
   passwordHash String
   fullName     String?
-  role         Role    @default(STUDENT)
+  role         Role     @default(STUDENT)
   bio          String?
   avatarUrl    String?
   createdAt    DateTime @default(now())
@@ -31,29 +30,15 @@ model User {
   enrollments        Enrollment[]
   studyNotes         StudyNote[]
   quizzes            Quiz[]
+  assignedQuizzes    Quiz[]            @relation("AssignedQuizzes")
   liveRoomsHosted    LiveRoom[]        @relation("InstructorRooms")
   roomParticipations RoomParticipant[]
   subscriptions      Subscription[]    @relation("StudentSubscriptions")
   subscribers        Subscription[]    @relation("InstructorSubscribers")
-=======
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  fullName     String?
-  role         Role     @default(STUDENT)
-  createdAt    DateTime @default(now())
-
-  // Relations
-  courses     Course[]     @relation("InstructorCourses")
-  enrollments Enrollment[]
-  studyNotes  StudyNote[]
-  quizzes     Quiz[]
->>>>>>> origin/Course
 }
 
 // --- 2. MARKETPLACE ---
 model Course {
-<<<<<<< HEAD
   id           String   @id @default(uuid())
   instructorId String
   title        String
@@ -62,31 +47,7 @@ model Course {
   thumbnailUrl String?
   isPublished  Boolean  @default(false)
   createdAt    DateTime @default(now())
-
-  instructor  User         @relation("InstructorCourses", fields: [instructorId], references: [id])
-  lessons     Lesson[]
-  enrollments Enrollment[]
-}
-
-model Lesson {
-  id         String @id @default(uuid())
-  courseId   String
-  title      String
-  videoUrl   String
-  duration   Int
-  orderIndex Int
-
-  course Course @relation(fields: [courseId], references: [id])
-=======
-  id            String       @id @default(uuid())
-  instructorId  String
-  title         String
-  description   String?
-  price         Decimal      @db.Decimal(10, 2)
-  thumbnailUrl  String?
-  isPublished   Boolean      @default(false)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  updatedAt    DateTime @updatedAt
 
   instructor  User            @relation("InstructorCourses", fields: [instructorId], references: [id])
   sections    CourseSection[]
@@ -128,7 +89,7 @@ model Lesson {
   courseId   String
   sectionId  String
   title      String
-  duration   Int? // Saniye cinsinden
+  duration   Int?
   orderIndex Int
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -162,7 +123,6 @@ model LessonContent {
   @@unique([lessonId, orderIndex])
   @@index([lessonId])
   @@map("lesson_contents")
->>>>>>> origin/Course
 }
 
 model Enrollment {
@@ -196,7 +156,6 @@ model StudyNote {
 
   student    User        @relation(fields: [studentId], references: [id])
   quizzes    Quiz[]
-<<<<<<< HEAD
   flashcards Flashcard[]
 }
 
@@ -208,22 +167,22 @@ model Flashcard {
   subject String @default("Genel")
 
   note StudyNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
-=======
->>>>>>> origin/Course
 }
 
 model Quiz {
-  id        String   @id @default(uuid())
-  noteId    String?
-  studentId String
-  subject   String   @default("Genel")
-  title     String
-  score     Int?
-  createdAt DateTime @default(now())
+  id                     String   @id @default(uuid())
+  noteId                 String?
+  studentId              String
+  subject                String   @default("Genel")
+  title                  String
+  score                  Int?
+  createdAt              DateTime @default(now())
+  assignedByInstructorId String?
 
-  note      StudyNote?     @relation(fields: [noteId], references: [id])
-  student   User           @relation(fields: [studentId], references: [id])
-  questions QuizQuestion[]
+  note                 StudyNote?     @relation(fields: [noteId], references: [id])
+  student              User           @relation(fields: [studentId], references: [id])
+  assignedByInstructor User?          @relation("AssignedQuizzes", fields: [assignedByInstructorId], references: [id])
+  questions            QuizQuestion[]
 }
 
 model QuizQuestion {

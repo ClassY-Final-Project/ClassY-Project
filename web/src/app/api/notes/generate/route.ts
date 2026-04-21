@@ -74,10 +74,12 @@ export async function POST(request: Request) {
     if (!pythonResponse.ok) {
       const errorText = await pythonResponse.text();
       console.error("Python API Hatası:", errorText);
-      return NextResponse.json(
-        { error: "Yapay zeka motoru yanıt vermedi." },
-        { status: 502 },
-      );
+      let detail = "Yapay zeka motoru yanıt vermedi.";
+      try {
+        const parsed = JSON.parse(errorText);
+        if (parsed?.detail) detail = parsed.detail;
+      } catch {}
+      return NextResponse.json({ error: detail }, { status: 502 });
     }
 
     // 4. Python'dan Gelen JSON'ı Al
