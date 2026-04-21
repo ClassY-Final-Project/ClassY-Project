@@ -16,6 +16,7 @@ enum Role {
 }
 
 model User {
+<<<<<<< HEAD
   id           String  @id @default(uuid())
   email        String  @unique
   passwordHash String
@@ -34,10 +35,25 @@ model User {
   roomParticipations RoomParticipant[]
   subscriptions      Subscription[]    @relation("StudentSubscriptions")
   subscribers        Subscription[]    @relation("InstructorSubscribers")
+=======
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String?
+  role         Role     @default(STUDENT)
+  createdAt    DateTime @default(now())
+
+  // Relations
+  courses     Course[]     @relation("InstructorCourses")
+  enrollments Enrollment[]
+  studyNotes  StudyNote[]
+  quizzes     Quiz[]
+>>>>>>> origin/Course
 }
 
 // --- 2. MARKETPLACE ---
 model Course {
+<<<<<<< HEAD
   id           String   @id @default(uuid())
   instructorId String
   title        String
@@ -61,6 +77,92 @@ model Lesson {
   orderIndex Int
 
   course Course @relation(fields: [courseId], references: [id])
+=======
+  id            String       @id @default(uuid())
+  instructorId  String
+  title         String
+  description   String?
+  price         Decimal      @db.Decimal(10, 2)
+  thumbnailUrl  String?
+  isPublished   Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  instructor  User            @relation("InstructorCourses", fields: [instructorId], references: [id])
+  sections    CourseSection[]
+  lessons     Lesson[]
+  enrollments Enrollment[]
+
+  @@index([instructorId])
+  @@map("courses")
+}
+
+enum LessonContentType {
+  VIDEO_URL
+  UPLOADED_VIDEO
+  PDF
+  TEXT
+  ASSIGNMENT_FILE
+  ASSIGNMENT_TEXT
+}
+
+model CourseSection {
+  id         String   @id @default(uuid())
+  courseId   String
+  title      String
+  orderIndex Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@unique([courseId, orderIndex])
+  @@unique([id, courseId])
+  @@index([courseId])
+  @@map("course_sections")
+}
+
+model Lesson {
+  id         String   @id @default(uuid())
+  courseId   String
+  sectionId  String
+  title      String
+  duration   Int? // Saniye cinsinden
+  orderIndex Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  course   Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  section  CourseSection   @relation(fields: [sectionId, courseId], references: [id, courseId], onDelete: Cascade)
+  contents LessonContent[]
+
+  @@unique([sectionId, orderIndex])
+  @@index([courseId])
+  @@index([sectionId])
+  @@index([sectionId, courseId])
+  @@map("lessons")
+}
+
+model LessonContent {
+  id          String            @id @default(uuid())
+  lessonId    String
+  contentType LessonContentType
+  title       String?
+  assetUrl    String?
+  textContent String?
+  mimeType    String?
+  duration    Int?
+  orderIndex  Int
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, orderIndex])
+  @@index([lessonId])
+  @@map("lesson_contents")
+>>>>>>> origin/Course
 }
 
 model Enrollment {
@@ -94,6 +196,7 @@ model StudyNote {
 
   student    User        @relation(fields: [studentId], references: [id])
   quizzes    Quiz[]
+<<<<<<< HEAD
   flashcards Flashcard[]
 }
 
@@ -105,6 +208,8 @@ model Flashcard {
   subject String @default("Genel")
 
   note StudyNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+=======
+>>>>>>> origin/Course
 }
 
 model Quiz {
