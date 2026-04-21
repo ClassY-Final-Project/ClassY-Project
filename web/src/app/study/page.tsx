@@ -38,6 +38,9 @@ export default function StudyPage() {
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
+    if (!loading && user && (user.role === "INSTRUCTOR" || user.role === "ADMIN")) {
+      router.replace("/instructor/dashboard");
+    }
   }, [user, loading, router]);
 
   // Mevcut dersleri yükle
@@ -335,23 +338,42 @@ export default function StudyPage() {
               <div>
                 <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-2">🃏 Flashcardlar</h2>
                 <p className="text-sm text-zinc-400 mb-4">Kartlara tıklayarak çevirin</p>
+                <style>{`
+                  .flashcard-scene { perspective: 1000px; }
+                  .flashcard-inner {
+                    position: relative; width: 100%; min-height: 140px;
+                    transform-style: preserve-3d;
+                    transition: transform 0.55s cubic-bezier(0.4,0,0.2,1);
+                  }
+                  .flashcard-inner.flipped { transform: rotateY(180deg); }
+                  .flashcard-face {
+                    position: absolute; inset: 0;
+                    backface-visibility: hidden;
+                    -webkit-backface-visibility: hidden;
+                    border-radius: 1rem;
+                    padding: 1.25rem;
+                    display: flex; flex-direction: column; justify-content: center;
+                  }
+                  .flashcard-back { transform: rotateY(180deg); }
+                `}</style>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {noteResult.flashcards.map((card, i) => (
-                    <div
-                      key={i}
-                      onClick={() => toggleCard(i)}
-                      className={`min-h-32 p-5 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md border flex flex-col justify-center ${
-                        flippedCards.has(i)
-                          ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-700"
-                          : "bg-white dark:bg-zinc-800/50 border-zinc-100 dark:border-zinc-800"
-                      }`}
-                    >
-                      <div className="text-xs font-medium text-indigo-400 dark:text-indigo-500 mb-2">
-                        {flippedCards.has(i) ? "CEVAP" : `KART ${i + 1}`}
+                    <div key={i} className="flashcard-scene cursor-pointer" style={{ minHeight: 140 }}
+                      onClick={() => toggleCard(i)}>
+                      <div className={`flashcard-inner${flippedCards.has(i) ? " flipped" : ""}`}
+                        style={{ minHeight: 140 }}>
+                        {/* Ön yüz */}
+                        <div className="flashcard-face bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 shadow-sm hover:shadow-md">
+                          <div className="text-xs font-semibold text-indigo-400 mb-2 uppercase tracking-wide">Kart {i + 1}</div>
+                          <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">{card.front}</p>
+                          <div className="mt-3 text-xs text-zinc-300 dark:text-zinc-600">Çevirmek için tıkla →</div>
+                        </div>
+                        {/* Arka yüz */}
+                        <div className="flashcard-face flashcard-back bg-indigo-600 border border-indigo-500 shadow-md">
+                          <div className="text-xs font-semibold text-indigo-200 mb-2 uppercase tracking-wide">Cevap</div>
+                          <p className="text-sm text-white leading-relaxed">{card.back}</p>
+                        </div>
                       </div>
-                      <p className={`text-sm leading-relaxed ${flippedCards.has(i) ? "text-indigo-800 dark:text-indigo-300" : "text-zinc-700 dark:text-zinc-300"}`}>
-                        {flippedCards.has(i) ? card.back : card.front}
-                      </p>
                     </div>
                   ))}
                 </div>

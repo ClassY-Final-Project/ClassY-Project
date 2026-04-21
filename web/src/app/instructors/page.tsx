@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
 interface Instructor {
@@ -145,11 +146,11 @@ export default function InstructorsPage() {
               <div key={inst.id} className="bg-white dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
                 {/* Avatar + İsim */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-11 h-11 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-lg shrink-0">
+                  <Link href={`/instructors/${inst.id}`} className="w-11 h-11 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-lg shrink-0 hover:opacity-90 transition-opacity">
                     {(inst.fullName || inst.email).charAt(0).toUpperCase()}
-                  </div>
+                  </Link>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">{inst.fullName || inst.email}</p>
+                    <Link href={`/instructors/${inst.id}`} className="font-semibold text-zinc-800 dark:text-zinc-200 truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors block">{inst.fullName || inst.email}</Link>
                     <p className="text-xs text-zinc-400 truncate">{inst.email}</p>
                   </div>
                   {inst.isSubscribed && (
