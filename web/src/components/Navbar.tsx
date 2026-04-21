@@ -55,10 +55,10 @@ export default function Navbar() {
     ? isInstructor
       ? [
           { href: "/instructor/dashboard", label: "Panelim" },
+          { href: "/instructor/courses", label: "Kurslarım" },
           { href: "/instructor/quiz", label: "Quiz Oluştur" },
-          { href: "/instructor/stats", label: "İstatistikler" },
           { href: "/live", label: "🔴 Canlı Dersler" },
-          { href: "/courses", label: "Kurslar" },
+          { href: "/courses", label: "Katalog" },
         ]
       : [
           { href: "/dashboard", label: "Çalışma Alanım" },

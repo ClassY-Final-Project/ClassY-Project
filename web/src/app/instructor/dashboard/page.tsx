@@ -114,9 +114,9 @@ export default function InstructorDashboardPage() {
           <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">Hızlı İşlemler</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
+              { href: "/instructor/courses", label: "Kurslarım", desc: "Kurs oluştur ve yönet", icon: "🎬", color: "border-indigo-200 dark:border-indigo-800 hover:border-indigo-400" },
               { href: "/live", label: "Canlı Ders Başlat", desc: "Yeni oda oluştur veya planla", icon: "🔴", color: "border-red-200 dark:border-red-800 hover:border-red-400" },
               { href: "/instructor/quiz", label: "Quiz Oluştur & Ata", desc: "Öğrencilerine quiz gönder", icon: "📋", color: "border-violet-200 dark:border-violet-800 hover:border-violet-400" },
-              { href: "/instructor/stats", label: "İstatistikleri Gör", desc: "Quiz sonuçlarını incele", icon: "📊", color: "border-emerald-200 dark:border-emerald-800 hover:border-emerald-400" },
             ].map((a) => (
               <Link key={a.href} href={a.href}
                 className={`bg-white dark:bg-zinc-800/60 border ${a.color} rounded-2xl p-5 flex items-start gap-4 transition-all hover:shadow-md group`}>
