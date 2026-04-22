@@ -54,6 +54,13 @@ export default function CourseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+  const [enrolled, setEnrolled] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollError, setEnrollError] = useState("");
+  const [reviews, setReviews] = useState<{ id: string; rating: number; comment: string | null; studentName: string; createdAt: string }[]>([]);
+  const [avgRating, setAvgRating] = useState(0);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     fetch(`/api/public/courses/${courseId}/curriculum`)
@@ -65,12 +72,58 @@ export default function CourseDetailPage() {
         if (!d) return;
         setCourse(d.course);
         setSections(d.sections || []);
-        if (d.sections?.length > 0) {
-          setOpenSections(new Set([d.sections[0].id]));
-        }
+        if (d.sections?.length > 0) setOpenSections(new Set([d.sections[0].id]));
       })
       .finally(() => setLoading(false));
   }, [courseId]);
+
+  useEffect(() => {
+    if (!user) return;
+    const token = localStorage.getItem("classy_token");
+    fetch(`/api/courses/${courseId}/enroll`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setEnrolled(d.enrolled); });
+  }, [user, courseId]);
+
+  useEffect(() => {
+    fetch(`/api/courses/${courseId}/reviews`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) { setReviews(d.reviews); setAvgRating(d.averageRating); } });
+  }, [courseId]);
+
+  async function submitReview(e: React.FormEvent) {
+    e.preventDefault();
+    const token = localStorage.getItem("classy_token");
+    setSubmittingReview(true);
+    const res = await fetch(`/api/courses/${courseId}/reviews`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(reviewForm),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      setReviews((prev) => [{ ...d.review, studentName: user?.fullName || user?.email || "Sen" }, ...prev.filter((r) => r.id !== d.review.id)]);
+    }
+    setSubmittingReview(false);
+  }
+
+  async function handleEnroll() {
+    const token = localStorage.getItem("classy_token");
+    setEnrolling(true);
+    setEnrollError("");
+    const res = await fetch(`/api/courses/${courseId}/enroll`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    });
+    const json = await res.json();
+    if (res.ok || res.status === 200) {
+      setEnrolled(true);
+      router.push(`/courses/${courseId}/learn`);
+    } else {
+      setEnrollError(json.error || "Kayıt başarısız.");
+    }
+    setEnrolling(false);
+  }
 
   function toggleSection(id: string) {
     setOpenSections((prev) => {
@@ -235,10 +288,34 @@ export default function CourseDetailPage() {
                   </span>
                 </div>
 
+                {enrollError && (
+                  <p className="text-xs text-red-500 text-center">{enrollError}</p>
+                )}
+
                 {user ? (
-                  <button className="w-full py-3 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-colors">
-                    {isFree ? "Kursa Katıl" : "Satın Al"}
-                  </button>
+                  enrolled ? (
+                    <Link
+                      href={`/courses/${courseId}/learn`}
+                      className="block w-full py-3 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 transition-colors text-center"
+                    >
+                      ▶ Kursa Devam Et
+                    </Link>
+                  ) : isFree ? (
+                    <button
+                      onClick={handleEnroll}
+                      disabled={enrolling}
+                      className="w-full py-3 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+                    >
+                      {enrolling ? "Kaydediliyor..." : "Kursa Katıl — Ücretsiz"}
+                    </button>
+                  ) : (
+                    <Link
+                      href={`/courses/${courseId}/payment`}
+                      className="block w-full py-3 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-colors text-center"
+                    >
+                      Satın Al — ₺{price.toLocaleString("tr-TR")}
+                    </Link>
+                  )
                 ) : (
                   <Link
                     href={`/login?redirect=/courses/${courseId}`}
@@ -271,6 +348,71 @@ export default function CourseDetailPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Yorumlar */}
+        <div className="mt-10 space-y-6">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Değerlendirmeler</h2>
+            {avgRating > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-yellow-400 text-sm">{"★".repeat(Math.round(avgRating))}{"☆".repeat(5 - Math.round(avgRating))}</span>
+                <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{avgRating.toFixed(1)}</span>
+                <span className="text-xs text-zinc-400">({reviews.length} yorum)</span>
+              </div>
+            )}
+          </div>
+
+          {/* Yorum formu — sadece kayıtlı öğrenciye */}
+          {enrolled && (
+            <form onSubmit={submitReview} className="bg-white dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5 space-y-3">
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Yorumunuzu yazın</p>
+              <div className="flex gap-1">
+                {[1,2,3,4,5].map((s) => (
+                  <button key={s} type="button" onClick={() => setReviewForm((f) => ({ ...f, rating: s }))}
+                    className={`text-2xl transition-transform hover:scale-110 ${s <= reviewForm.rating ? "text-yellow-400" : "text-zinc-300 dark:text-zinc-600"}`}>
+                    ★
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={reviewForm.comment}
+                onChange={(e) => setReviewForm((f) => ({ ...f, comment: e.target.value }))}
+                placeholder="Bu kurs hakkında ne düşünüyorsunuz?"
+                rows={3}
+                className="w-full px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-indigo-400 resize-none"
+              />
+              <button type="submit" disabled={submittingReview}
+                className="px-5 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors">
+                {submittingReview ? "Gönderiliyor..." : "Yorumu Gönder"}
+              </button>
+            </form>
+          )}
+
+          {/* Yorumlar listesi */}
+          {reviews.length > 0 ? (
+            <div className="space-y-3">
+              {reviews.map((r) => (
+                <div key={r.id} className="bg-white dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs">
+                        {r.studentName.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{r.studentName}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-yellow-400 text-sm">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
+                      <span className="text-xs text-zinc-400">{new Date(r.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}</span>
+                    </div>
+                  </div>
+                  {r.comment && <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{r.comment}</p>}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-400 italic">Henüz yorum yok. İlk yorumu sen yaz!</p>
+          )}
         </div>
       </main>
     </div>
