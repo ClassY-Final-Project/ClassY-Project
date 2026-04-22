@@ -11,6 +11,7 @@ export function serializePublicCourseCard(course: {
   instructor?: {
     id: string;
     fullName: string | null;
+    iban?: string | null;
   } | null;
 }) {
   return {
@@ -26,6 +27,7 @@ export function serializePublicCourseCard(course: {
           instructor: {
             id: course.instructor.id,
             fullName: course.instructor.fullName,
+            iban: course.instructor.iban ?? null,
           },
         }
       : {}),
