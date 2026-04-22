@@ -23,6 +23,7 @@ model User {
   role         Role     @default(STUDENT)
   bio          String?
   avatarUrl    String?
+  iban         String?
   createdAt    DateTime @default(now())
 
   // Relations
@@ -35,6 +36,9 @@ model User {
   roomParticipations RoomParticipant[]
   subscriptions      Subscription[]    @relation("StudentSubscriptions")
   subscribers        Subscription[]    @relation("InstructorSubscribers")
+  lessonProgress     LessonProgress[]
+  reviews            CourseReview[]
+  notifications      Notification[]
 }
 
 // --- 2. MARKETPLACE ---
@@ -53,6 +57,7 @@ model Course {
   sections    CourseSection[]
   lessons     Lesson[]
   enrollments Enrollment[]
+  reviews     CourseReview[]
 
   @@index([instructorId])
   @@map("courses")
@@ -94,9 +99,10 @@ model Lesson {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  course   Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  section  CourseSection   @relation(fields: [sectionId, courseId], references: [id, courseId], onDelete: Cascade)
-  contents LessonContent[]
+  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  section   CourseSection    @relation(fields: [sectionId, courseId], references: [id, courseId], onDelete: Cascade)
+  contents  LessonContent[]
+  progress  LessonProgress[]
 
   @@unique([sectionId, orderIndex])
   @@index([courseId])
@@ -135,6 +141,49 @@ model Enrollment {
   course  Course @relation(fields: [courseId], references: [id])
 
   @@unique([studentId, courseId])
+}
+
+model LessonProgress {
+  id          String   @id @default(uuid())
+  studentId   String
+  lessonId    String
+  courseId    String
+  completedAt DateTime @default(now())
+
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lesson  Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, lessonId])
+  @@map("LessonProgress")
+}
+
+model CourseReview {
+  id        String   @id @default(uuid())
+  studentId String
+  courseId  String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+  @@map("CourseReview")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("Notification")
 }
 
 // --- 3. AI & STUDY ---
