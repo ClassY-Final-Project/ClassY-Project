@@ -10,6 +10,9 @@ export default function Navbar() {
   const pathname = usePathname();
   const [dark, setDark] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+  const [notifications, setNotifications] = useState<{ id: string; message: string; isRead: boolean; createdAt: string }[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("classy_theme");
@@ -20,7 +23,28 @@ export default function Navbar() {
   }, []);
 
   // Sayfa değişince menüyü kapat
-  useEffect(() => { setMenuOpen(false); }, [pathname]);
+  useEffect(() => { setMenuOpen(false); setNotifOpen(false); }, [pathname]);
+
+  // Bildirimler
+  useEffect(() => {
+    if (!user) return;
+    const load = () => {
+      const token = localStorage.getItem("classy_token");
+      fetch("/api/notifications", { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => { if (d) { setUnread(d.unreadCount); setNotifications(d.notifications); } });
+    };
+    load();
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  async function markAllRead() {
+    const token = localStorage.getItem("classy_token");
+    await fetch("/api/notifications", { method: "PATCH", headers: { Authorization: `Bearer ${token}` } });
+    setUnread(0);
+    setNotifications((n) => n.map((x) => ({ ...x, isRead: true })));
+  }
 
   function toggleDark() {
     const next = !dark;
@@ -56,8 +80,9 @@ export default function Navbar() {
       ? [
           { href: "/instructor/dashboard", label: "Panelim" },
           { href: "/instructor/courses", label: "Kurslarım" },
-          { href: "/instructor/quiz", label: "Quiz Oluştur" },
-          { href: "/live", label: "🔴 Canlı Dersler" },
+          { href: "/instructor/earnings", label: "Kazançlarım" },
+          { href: "/instructor/quiz", label: "Quiz" },
+          { href: "/live", label: "🔴 Canlı" },
           { href: "/courses", label: "Katalog" },
         ]
       : [
@@ -103,6 +128,40 @@ export default function Navbar() {
               </svg>
             )}
           </button>
+
+          {/* Bildirim zili */}
+          {user && (
+            <div className="relative">
+              <button onClick={() => { setNotifOpen((v) => !v); if (unread > 0) markAllRead(); }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors relative">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {unread > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold leading-none">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 top-10 w-80 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-xl z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Bildirimler</p>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto divide-y divide-zinc-50 dark:divide-zinc-800">
+                    {notifications.length === 0 ? (
+                      <p className="text-sm text-zinc-400 text-center py-6">Bildirim yok</p>
+                    ) : notifications.map((n) => (
+                      <div key={n.id} className={`px-4 py-3 text-xs ${n.isRead ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-700 dark:text-zinc-300 bg-indigo-50/50 dark:bg-indigo-950/20"}`}>
+                        <p>{n.message}</p>
+                        <p className="text-zinc-400 mt-0.5">{new Date(n.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Desktop Auth */}
           {user ? (
