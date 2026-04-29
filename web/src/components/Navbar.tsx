@@ -72,8 +72,9 @@ export default function Navbar() {
     : "";
 
   if (loading) return null;
+  if (pathname.startsWith("/admin")) return null;
 
-  const isInstructor = user?.role === "INSTRUCTOR" || user?.role === "ADMIN";
+  const isInstructor = user?.role === "INSTRUCTOR";
 
   const navLinks = user
     ? isInstructor
@@ -99,7 +100,7 @@ export default function Navbar() {
       <header className="sticky top-0 z-20 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-6">
           {/* Logo */}
-          <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2 mr-2">
+          <Link href={user?.role === "ADMIN" ? "/admin" : user ? "/dashboard" : "/"} className="flex items-center gap-2 mr-2">
             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-base">C</div>
             <span className="font-bold text-zinc-900 dark:text-white text-lg">ClassY</span>
           </Link>

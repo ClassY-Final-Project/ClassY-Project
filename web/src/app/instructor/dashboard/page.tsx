@@ -23,6 +23,7 @@ export default function InstructorDashboardPage() {
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
+    if (!loading && user && user.role === "ADMIN") router.replace("/admin");
     if (!loading && user && user.role === "STUDENT") router.replace("/dashboard");
   }, [user, loading, router]);
 

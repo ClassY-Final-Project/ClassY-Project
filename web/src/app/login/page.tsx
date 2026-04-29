@@ -15,7 +15,11 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) router.replace("/dashboard");
+    if (!loading && user) {
+      if (user.role === "ADMIN") router.replace("/admin");
+      else if (user.role === "INSTRUCTOR") router.replace("/instructor/dashboard");
+      else router.replace("/dashboard");
+    }
   }, [user, loading, router]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -26,9 +30,8 @@ export default function LoginPage() {
     if (result.error) {
       setError(result.error);
       setSubmitting(false);
-    } else {
-      router.replace("/dashboard");
     }
+    // useEffect handles redirect based on role
   }
 
   if (loading) return null;
