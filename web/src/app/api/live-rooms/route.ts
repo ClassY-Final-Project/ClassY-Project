@@ -21,7 +21,6 @@ export async function GET(request: Request) {
     const filter = searchParams.get("filter"); // "live" | "scheduled" | "ended" | "history"
 
     if (filter === "history") {
-      // Katıldığı ve bitmiş dersler (öğrenci veya eğitmen)
       const participations = await (prisma as any).roomParticipant.findMany({
         where: { userId: user.userId, room: { status: "ENDED" } },
         include: {
@@ -34,7 +33,6 @@ export async function GET(request: Request) {
       const participatedRooms = participations.map((p: any) => ({ ...p.room, joinedAt: p.joinedAt }));
       const participatedIds = new Set(participatedRooms.map((r: any) => r.id));
 
-      // Eğitmen ise: katılmadığı ama bitirdiği odalar da gelsin
       let instructorEndedRooms: any[] = [];
       if (user.role !== "STUDENT") {
         instructorEndedRooms = await (prisma as any).liveRoom.findMany({
@@ -92,7 +90,6 @@ export async function POST(request: Request) {
 
     const dailyRoomName = `classy-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-    // Daily.co'da oda oluştur
     const dailyRes = await fetch(`${DAILY_API}/rooms`, {
       method: "POST",
       headers: dailyHeaders(),
@@ -111,7 +108,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Daily.co oda oluşturulamadı." }, { status: 502 });
     }
 
-    // DB'ye kaydet
     const room = await (prisma as any).liveRoom.create({
       data: {
         name: name.trim(),

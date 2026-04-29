@@ -4,7 +4,6 @@ import { verifyToken } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ courseId: string }> };
 
-// GET — öğrencinin bu kursa kayıtlı olup olmadığını kontrol et
 export async function GET(request: Request, context: RouteContext) {
   const { user, error } = verifyToken(request);
   if (error) return error;
@@ -18,10 +17,13 @@ export async function GET(request: Request, context: RouteContext) {
   return NextResponse.json({ enrolled: !!enrollment });
 }
 
-// POST — kursa kayıt ol
 export async function POST(request: Request, context: RouteContext) {
   const { user, error } = verifyToken(request);
   if (error) return error;
+
+  if (user?.role !== "ADMIN" && user?.role !== "STUDENT") {
+    return NextResponse.json({ error: "Sadece öğrenciler kursa kayıt olabilir." }, { status: 403 });
+  }
 
   const { courseId } = await context.params;
 
@@ -46,7 +48,6 @@ export async function POST(request: Request, context: RouteContext) {
     prisma.user.findUnique({ where: { id: user!.userId }, select: { fullName: true, email: true } }),
   ]);
 
-  // Eğitmene bildirim gönder
   await prisma.notification.create({
     data: {
       userId: course.instructorId,

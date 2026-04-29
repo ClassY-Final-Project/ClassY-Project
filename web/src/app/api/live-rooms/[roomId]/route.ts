@@ -25,7 +25,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ room
   }
 }
 
-// DELETE /api/live-rooms/[roomId] — Oda sil (sadece oda sahibi)
+// DELETE /api/live-rooms/[roomId] — Oda sil (admin veya oda sahibi eğitmen)
 export async function DELETE(request: Request, { params }: { params: Promise<{ roomId: string }> }) {
   const { user, error } = verifyToken(request);
   if (error) return error;
@@ -36,7 +36,10 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ r
   try {
     const room = await (prisma as any).liveRoom.findUnique({ where: { id: roomId } });
     if (!room) return NextResponse.json({ error: "Oda bulunamadı." }, { status: 404 });
-    if (room.instructorId !== user.userId) return NextResponse.json({ error: "Yetkisiz." }, { status: 403 });
+
+    if (user.role !== "ADMIN" && (user.role !== "INSTRUCTOR" || room.instructorId !== user.userId)) {
+      return NextResponse.json({ error: "Yetkisiz erişim. Bu odayı silme yetkiniz yok." }, { status: 403 });
+    }
 
     await (prisma as any).liveRoom.delete({ where: { id: roomId } });
     return NextResponse.json({ message: "Oda silindi." });
