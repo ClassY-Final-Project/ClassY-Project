@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 
-export async function POST(request: Request) {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ courseId: string }> }
+) {
   try {
     const { user, error } = verifyToken(request);
     if (error) return error;
 
     if (user?.role !== "ADMIN" && user?.role !== "INSTRUCTOR") {
-      return NextResponse.json({ error: "Yetkisiz erişim. Sadece eğitmen veya admin canlı ders oluşturabilir." }, { status: 403 });
+      return NextResponse.json({ error: "Yetkisiz erişim. Sadece eğitmen veya admin ders ekleyebilir." }, { status: 403 });
     }
 
     return NextResponse.json({ message: "Not implemented" });
