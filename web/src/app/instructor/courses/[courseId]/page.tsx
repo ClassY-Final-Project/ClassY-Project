@@ -41,18 +41,22 @@ interface Course {
 }
 
 const CONTENT_TYPE_LABELS: Record<string, string> = {
-  VIDEO_URL: "Video (URL)",
-  PDF: "PDF Dosyası",
+  VIDEO_URL: "Video",
+  UPLOADED_VIDEO: "Video",
+  PDF: "PDF",
   TEXT: "Yazılı İçerik",
   ASSIGNMENT_TEXT: "Ödev",
 };
 
 const CONTENT_TYPE_ICONS: Record<string, string> = {
   VIDEO_URL: "🎬",
+  UPLOADED_VIDEO: "🎬",
   PDF: "📄",
   TEXT: "📝",
   ASSIGNMENT_TEXT: "📋",
 };
+
+const FORM_TYPES = ["VIDEO_URL", "PDF", "TEXT", "ASSIGNMENT_TEXT"];
 
 export default function CourseEditorPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -84,6 +88,8 @@ export default function CourseEditorPage() {
     duration: "",
   });
   const [addingContent, setAddingContent] = useState(false);
+  const [uploadMode, setUploadMode] = useState<"file" | "url">("file");
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -126,8 +132,29 @@ export default function CourseEditorPage() {
 
   useEffect(() => { if (token) loadCourse(); }, [token, loadCourse]);
 
+  async function uploadFile(file: File) {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
+    const json = await res.json();
+    if (res.ok) {
+      const isVideo = file.type.startsWith("video/");
+      setContentForm((f) => ({
+        ...f,
+        assetUrl: json.url,
+        contentType: isVideo ? "UPLOADED_VIDEO" : f.contentType,
+      }));
+      showToast("Dosya yüklendi.");
+    } else {
+      showToast(json.error || "Yükleme başarısız.", "err");
+    }
+    setUploading(false);
+  }
+
   async function openLessonPanel(sectionId: string, lesson: Lesson) {
     setSelectedLesson({ sectionId, lesson });
+    setUploadMode("file");
     setContentForm({ contentType: "VIDEO_URL", title: "", assetUrl: "", textContent: "", duration: "" });
 
     if (lesson.contents.length === 0) {
@@ -160,13 +187,13 @@ export default function CourseEditorPage() {
       orderIndex: lesson.contents.length,
     };
     if (contentForm.title.trim()) body.title = contentForm.title.trim();
-    if (["VIDEO_URL", "PDF"].includes(contentForm.contentType) && contentForm.assetUrl.trim()) {
+    if (["VIDEO_URL", "UPLOADED_VIDEO", "PDF"].includes(contentForm.contentType) && contentForm.assetUrl.trim()) {
       body.assetUrl = contentForm.assetUrl.trim();
     }
     if (["TEXT", "ASSIGNMENT_TEXT"].includes(contentForm.contentType) && contentForm.textContent.trim()) {
       body.textContent = contentForm.textContent.trim();
     }
-    if (contentForm.contentType === "VIDEO_URL" && contentForm.duration) {
+    if (["VIDEO_URL", "UPLOADED_VIDEO"].includes(contentForm.contentType) && contentForm.duration) {
       body.duration = parseInt(contentForm.duration) * 60;
     }
 
@@ -613,16 +640,19 @@ export default function CourseEditorPage() {
                     <form onSubmit={addContent} className="space-y-3">
                       {/* İçerik tipi */}
                       <div className="grid grid-cols-2 gap-2">
-                        {Object.entries(CONTENT_TYPE_LABELS).map(([type, label]) => (
+                        {FORM_TYPES.map((type) => (
                           <button key={type} type="button"
-                            onClick={() => setContentForm((f) => ({ ...f, contentType: type }))}
+                            onClick={() => {
+                              setContentForm((f) => ({ ...f, contentType: type, assetUrl: "", textContent: "" }));
+                              setUploadMode("file");
+                            }}
                             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${
-                              contentForm.contentType === type
+                              contentForm.contentType === type || (type === "VIDEO_URL" && contentForm.contentType === "UPLOADED_VIDEO")
                                 ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400"
                                 : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-indigo-300"
                             }`}>
                             <span>{CONTENT_TYPE_ICONS[type]}</span>
-                            {label}
+                            {CONTENT_TYPE_LABELS[type]}
                           </button>
                         ))}
                       </div>
@@ -635,19 +665,62 @@ export default function CourseEditorPage() {
                           className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                       </div>
 
-                      {/* URL alanı (VIDEO_URL ve PDF için) */}
-                      {["VIDEO_URL", "PDF"].includes(contentForm.contentType) && (
-                        <div>
-                          <input type="url" required
-                            placeholder={contentForm.contentType === "VIDEO_URL" ? "YouTube / Vimeo URL..." : "PDF URL..."}
-                            value={contentForm.assetUrl}
-                            onChange={(e) => setContentForm((f) => ({ ...f, assetUrl: e.target.value }))}
-                            className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                      {/* Video / PDF: dosya yükle veya URL gir */}
+                      {["VIDEO_URL", "UPLOADED_VIDEO", "PDF"].includes(contentForm.contentType) && (
+                        <div className="space-y-2">
+                          <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1">
+                            <button type="button" onClick={() => { setUploadMode("file"); setContentForm((f) => ({ ...f, assetUrl: "" })); }}
+                              className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-colors ${uploadMode === "file" ? "bg-white dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 shadow-sm" : "text-zinc-500"}`}>
+                              📁 Dosya Yükle
+                            </button>
+                            <button type="button" onClick={() => { setUploadMode("url"); setContentForm((f) => ({ ...f, assetUrl: "", contentType: contentForm.contentType === "UPLOADED_VIDEO" ? "VIDEO_URL" : contentForm.contentType })); }}
+                              className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-colors ${uploadMode === "url" ? "bg-white dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 shadow-sm" : "text-zinc-500"}`}>
+                              🔗 URL Gir
+                            </button>
+                          </div>
+
+                          {uploadMode === "file" ? (
+                            <div className="space-y-1.5">
+                              <label className={`flex flex-col items-center gap-2 px-4 py-5 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${uploading ? "border-indigo-300 bg-indigo-50/50 dark:bg-indigo-950/20" : "border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10"}`}>
+                                {uploading ? (
+                                  <>
+                                    <div className="w-5 h-5 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
+                                    <span className="text-xs text-indigo-500">Yükleniyor...</span>
+                                  </>
+                                ) : contentForm.assetUrl ? (
+                                  <>
+                                    <span className="text-xl">✅</span>
+                                    <span className="text-xs text-green-600 dark:text-green-400 font-medium">Dosya yüklendi</span>
+                                    <span className="text-xs text-zinc-400">Değiştirmek için tıkla</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="text-2xl">{contentForm.contentType === "PDF" ? "📄" : "🎬"}</span>
+                                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                                      {contentForm.contentType === "PDF" ? "PDF seç veya sürükle" : "Video seç veya sürükle"}
+                                    </span>
+                                    <span className="text-xs text-zinc-400">Maks. 500 MB</span>
+                                  </>
+                                )}
+                                <input type="file"
+                                  accept={contentForm.contentType === "PDF" ? ".pdf" : "video/*"}
+                                  className="hidden"
+                                  disabled={uploading}
+                                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); e.target.value = ""; }} />
+                              </label>
+                            </div>
+                          ) : (
+                            <input type="url" required
+                              placeholder={contentForm.contentType === "PDF" ? "PDF URL..." : "YouTube / Vimeo URL..."}
+                              value={contentForm.assetUrl}
+                              onChange={(e) => setContentForm((f) => ({ ...f, assetUrl: e.target.value }))}
+                              className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          )}
                         </div>
                       )}
 
                       {/* Video süresi */}
-                      {contentForm.contentType === "VIDEO_URL" && (
+                      {["VIDEO_URL", "UPLOADED_VIDEO"].includes(contentForm.contentType) && (
                         <div>
                           <input type="number" min="1" placeholder="Süre (dakika)"
                             value={contentForm.duration}
@@ -667,9 +740,13 @@ export default function CourseEditorPage() {
                         </div>
                       )}
 
-                      <button type="submit" disabled={addingContent}
+                      <button type="submit"
+                        disabled={
+                          addingContent || uploading ||
+                          (["VIDEO_URL", "UPLOADED_VIDEO", "PDF"].includes(contentForm.contentType) && !contentForm.assetUrl.trim())
+                        }
                         className="w-full py-2.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-                        {addingContent ? "Ekleniyor..." : `${CONTENT_TYPE_ICONS[contentForm.contentType]} İçerik Ekle`}
+                        {uploading ? "Dosya yükleniyor..." : addingContent ? "Ekleniyor..." : `${CONTENT_TYPE_ICONS[contentForm.contentType]} İçerik Ekle`}
                       </button>
                     </form>
                   </div>
