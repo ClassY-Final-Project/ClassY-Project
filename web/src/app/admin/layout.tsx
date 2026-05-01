@@ -9,13 +9,21 @@ const NAV = [
   { href: "/admin", label: "Genel Bakış", icon: "📊" },
   { href: "/admin/users", label: "Kullanıcılar", icon: "👥" },
   { href: "/admin/courses", label: "Kurslar", icon: "🎬" },
+  { href: "/admin/live-rooms", label: "Canlı Dersler", icon: "🔴" },
+  { href: "/admin/notes", label: "Ders Notları", icon: "📄" },
+  { href: "/admin/quizzes", label: "Quizler", icon: "📝" },
   { href: "/admin/reports", label: "Raporlar", icon: "📈" },
   { href: "/admin/announcements", label: "Duyurular", icon: "📢" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
+
+  const handleBackToPlatform = () => {
+    logout();
+    router.push("/");
+  };
   const pathname = usePathname();
 
   useEffect(() => {
@@ -35,7 +43,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         <nav className="space-y-1 flex-1">
           {NAV.map((item) => {
-            const active = pathname === item.href;
+            const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
@@ -54,9 +62,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
         <div className="px-3 pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
           <p className="text-xs text-zinc-400 truncate">{user.email}</p>
-          <Link href="/" className="flex items-center gap-2 text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
+          <button onClick={handleBackToPlatform} className="flex items-center gap-2 text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
             ← Platforma Dön
-          </Link>
+          </button>
         </div>
       </aside>
 
