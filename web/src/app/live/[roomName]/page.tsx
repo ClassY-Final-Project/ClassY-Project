@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -24,10 +24,11 @@ export default function LiveRoomPage() {
   const [elapsed, setElapsed] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const wrappedRef = useRef<boolean>(false);
 
   // Daily.co iframe URL - lang=tr, leave button kaldırıldı (kendi butonumuz var)
   const dailyUrl = token && roomUrl
-    ? `${roomUrl}?t=${token}&lang=tr&showLeaveButton=0`
+    ? `${roomUrl}?t=${token}&lang=tr&showLeaveButton=false&showFullscreenButton=true`
     : null;
 
   useEffect(() => {
@@ -77,6 +78,47 @@ export default function LiveRoomPage() {
     }, 10000);
     return () => clearInterval(poll);
   }, [joined, isOwner, roomId, router]);
+
+  // iframe yüklenince Daily.co SDK ile wrap edip tema + dil ayarla
+  const handleIframeLoad = useCallback(async () => {
+    setJoined(true);
+
+    // Sadece bir kez wrap et
+    if (wrappedRef.current || !iframeRef.current) return;
+    wrappedRef.current = true;
+
+    try {
+      const DailyIframe = (await import("@daily-co/daily-js")).default;
+      const callFrame = DailyIframe.wrap(iframeRef.current, {
+        iframeStyle: {
+          width: "100%",
+          height: "100%",
+          border: "0",
+        },
+      });
+
+      // Türkçe dil ayarla
+      callFrame.setDailyLang("tr");
+
+      // Uygulama renk temasını ayarla (indigo + dark zinc)
+      callFrame.setTheme({
+        colors: {
+          accent: "#6366f1",           // indigo-500
+          accentText: "#ffffff",
+          background: "#09090b",       // zinc-950
+          backgroundAccent: "#18181b", // zinc-900
+          baseText: "#fafafa",         // zinc-50
+          border: "#27272a",           // zinc-800
+          mainAreaBg: "#09090b",       // zinc-950
+          mainAreaBgAccent: "#18181b", // zinc-900
+          mainAreaText: "#fafafa",     // zinc-50
+          supportiveText: "#a1a1aa",   // zinc-400
+        },
+      });
+    } catch (err) {
+      console.warn("Daily.co tema ayarlanamadı:", err);
+    }
+  }, []);
 
   async function joinRoom() {
     setFetchingToken(true);
@@ -173,7 +215,7 @@ export default function LiveRoomPage() {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-            Dersi bitirmek için "Dersi Bitir" butonunu kullanın
+            Dersi bitirmek için &quot;Dersi Bitir&quot; butonunu kullanın
           </div>
         )}
 
@@ -237,7 +279,7 @@ export default function LiveRoomPage() {
             src={dailyUrl}
             allow="camera; microphone; fullscreen; display-capture; autoplay; clipboard-write"
             allowFullScreen
-            onLoad={() => setJoined(true)}
+            onLoad={handleIframeLoad}
             className="w-full h-full border-0"
             style={{ opacity: joined ? 1 : 0, transition: "opacity 0.4s" }}
           />

@@ -100,6 +100,7 @@ export async function POST(request: Request) {
           exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
           enable_chat: true,
           enable_screenshare: true,
+          lang: "tr",
         },
       }),
     });
