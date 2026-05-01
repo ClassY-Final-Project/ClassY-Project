@@ -102,7 +102,15 @@ async def generate_quiz(
             contents=prompt
         )
 
-        clean_text = response.text.replace("```json", "").replace("```", "").strip()
+        # JSON temizleme işlemini daha sağlam hale getirelim
+        content_text = response.text
+        if "```json" in content_text:
+            clean_text = content_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in content_text:
+            clean_text = content_text.split("```")[1].split("```")[0].strip()
+        else:
+            clean_text = content_text.strip()
+
         parsed = json.loads(clean_text)
         # Eski format (düz dizi) ile geriye dönük uyumluluk
         if isinstance(parsed, list):
@@ -179,7 +187,15 @@ async def generate_study_notes(file: UploadFile = File(...)):
         )
         
         # 4. JSON Temizliği
-        clean_text = response.text.replace("```json", "").replace("```", "").strip()
+        # JSON temizleme işlemini daha sağlam hale getirelim
+        content_text = response.text
+        if "```json" in content_text:
+            clean_text = content_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in content_text:
+            clean_text = content_text.split("```")[1].split("```")[0].strip()
+        else:
+            clean_text = content_text.strip()
+            
         notes_data = json.loads(clean_text)
         subject = notes_data.pop("subject", "Genel")
 
