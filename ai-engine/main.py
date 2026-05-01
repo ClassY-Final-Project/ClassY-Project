@@ -98,7 +98,7 @@ async def generate_quiz(
         """
 
         response = client.models.generate_content(
-            model='gemini-2.0-flash-lite',
+            model='gemini-2.5-flash',
             contents=prompt
         )
 
@@ -182,7 +182,7 @@ async def generate_study_notes(file: UploadFile = File(...)):
 
         # 3. Gemini'a gönder
         response = client.models.generate_content(
-            model='gemini-2.0-flash-lite',
+            model='gemini-2.5-flash',
             contents=prompt
         )
         
