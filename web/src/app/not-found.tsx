@@ -24,9 +24,9 @@ export default function NotFound() {
           className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
           Ana Sayfaya Dön
         </Link>
-        <Link href="/study"
+        <Link href="/courses"
           className="px-6 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl text-sm font-medium hover:border-indigo-300 hover:text-indigo-600 transition-colors">
-          AI Asistana Git
+          Kurslara Göz At
         </Link>
       </div>
     </div>

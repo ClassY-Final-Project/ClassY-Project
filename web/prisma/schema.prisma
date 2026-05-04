@@ -39,6 +39,7 @@ model User {
   lessonProgress     LessonProgress[]
   reviews            CourseReview[]
   notifications      Notification[]
+  subjects           Subject[]
 }
 
 // --- 2. MARKETPLACE ---
@@ -202,10 +203,47 @@ model StudyNote {
   processedStatus NoteStatus @default(PENDING)
   uploadedAt      DateTime   @default(now())
   subject         String     @default("Genel")
+  weekId          String?
 
   student    User        @relation(fields: [studentId], references: [id])
+  week       Week?       @relation(fields: [weekId], references: [id], onDelete: Cascade)
   quizzes    Quiz[]
   flashcards Flashcard[]
+
+  @@index([weekId])
+}
+
+// Öğrenci tarafından eklenen "Ders" (örn. Matematik 12 hafta)
+model Subject {
+  id        String   @id @default(uuid())
+  studentId String
+  name      String
+  weekCount Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  weeks   Week[]
+
+  @@index([studentId])
+  @@map("subjects")
+}
+
+// Bir dersin haftaları
+model Week {
+  id         String   @id @default(uuid())
+  subjectId  String
+  weekNumber Int
+  title      String?
+  createdAt  DateTime @default(now())
+
+  subject Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  notes   StudyNote[]
+  quizzes Quiz[]
+
+  @@unique([subjectId, weekNumber])
+  @@index([subjectId])
+  @@map("weeks")
 }
 
 model Flashcard {
@@ -227,11 +265,15 @@ model Quiz {
   score                  Int?
   createdAt              DateTime @default(now())
   assignedByInstructorId String?
+  weekId                 String?
 
   note                 StudyNote?     @relation(fields: [noteId], references: [id])
   student              User           @relation(fields: [studentId], references: [id])
   assignedByInstructor User?          @relation("AssignedQuizzes", fields: [assignedByInstructorId], references: [id])
+  week                 Week?          @relation(fields: [weekId], references: [id], onDelete: Cascade)
   questions            QuizQuestion[]
+
+  @@index([weekId])
 }
 
 model QuizQuestion {

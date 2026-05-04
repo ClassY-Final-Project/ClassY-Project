@@ -158,9 +158,9 @@ export default function QuizPage() {
             </Link>
           </div>
 
-          <Link href="/study"
+          <Link href="/dashboard"
             className="block text-center text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
-            Yeni quiz oluştur →
+            Çalışma alanına dön →
           </Link>
         </main>
       </div>

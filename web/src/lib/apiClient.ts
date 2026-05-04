@@ -192,6 +192,123 @@ export async function deleteQuiz(quizId: string) {
   return { ok: res.ok };
 }
 
+// ── Subjects (Derslerim) ─────────────────────────────────────────────────────
+
+export interface WeekLite {
+  id: string;
+  weekNumber: number;
+  title: string | null;
+  _count: { notes: number; quizzes: number };
+}
+
+export interface SubjectFull {
+  id: string;
+  name: string;
+  weekCount: number;
+  createdAt: string;
+  weeks: WeekLite[];
+}
+
+export async function getSubjects(): Promise<{ ok: boolean; subjects?: SubjectFull[]; error?: string }> {
+  const res = await fetch("/api/subjects", { headers: authHeaders() });
+  const json = await res.json();
+  if (!res.ok) return { ok: false, error: json.error };
+  return { ok: true, subjects: json.subjects };
+}
+
+export async function createSubject(name: string, weekCount: number): Promise<{ ok: boolean; subject?: SubjectFull; error?: string }> {
+  const res = await fetch("/api/subjects", {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ name, weekCount }),
+  });
+  const json = await res.json();
+  if (!res.ok) return { ok: false, error: json.error };
+  return { ok: true, subject: json.subject };
+}
+
+export async function deleteSubject(subjectId: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`/api/subjects/${subjectId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return { ok: res.ok };
+}
+
+export interface WeekDetail {
+  week: { id: string; weekNumber: number; title: string | null; subject: { id: string; name: string } };
+  notes: { id: string; fileName: string; processedStatus: string; uploadedAt: string }[];
+  quizzes: { id: string; title: string; score: number | null; createdAt: string; noteId: string | null }[];
+}
+
+export async function getWeek(weekId: string): Promise<{ ok: boolean; data?: WeekDetail; error?: string }> {
+  const res = await fetch(`/api/weeks/${weekId}`, { headers: authHeaders() });
+  const json = await res.json();
+  if (!res.ok) return { ok: false, error: json.error };
+  return { ok: true, data: json };
+}
+
+export interface WeekGeneratedBundle {
+  noteId: string;
+  quizId: string;
+  summary: string;
+  flashcards: { front: string; back: string }[];
+  quiz: GeneratedQuizItem[];
+}
+
+export async function generateForWeek(
+  weekId: string,
+  file: File,
+  questionCount = 10
+): Promise<{ ok: boolean; data?: WeekGeneratedBundle; error?: string }> {
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("question_count", String(questionCount));
+  const res = await fetch(`/api/weeks/${weekId}/generate`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: fd,
+  });
+  const json = await res.json();
+  if (!res.ok) return { ok: false, error: json.error };
+  return { ok: true, data: json };
+}
+
+export interface NoteDetail {
+  id: string;
+  fileName: string;
+  summary: string | null;
+  subject: string;
+  uploadedAt: string;
+  flashcards: { id: string; front: string; back: string }[];
+}
+
+export async function getNote(noteId: string): Promise<{ ok: boolean; note?: NoteDetail; error?: string }> {
+  const res = await fetch(`/api/notes/${noteId}`, { headers: authHeaders() });
+  const json = await res.json();
+  if (!res.ok) return { ok: false, error: json.error };
+  return { ok: true, note: json.note };
+}
+
+// ── My Courses (satın alınan / kayıtlı) ──────────────────────────────────────
+
+export interface MyCourse {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  enrollmentId: string;
+  purchasedAt: string;
+  instructor: { id: string; fullName: string | null; email: string } | null;
+}
+
+export async function getMyCourses(): Promise<{ ok: boolean; courses?: MyCourse[]; error?: string }> {
+  const res = await fetch("/api/my-courses", { headers: authHeaders() });
+  const json = await res.json();
+  if (!res.ok) return { ok: false, error: json.error };
+  return { ok: true, courses: json.courses };
+}
+
 // ── Live Rooms ────────────────────────────────────────────────────────────────
 
 export interface LiveRoom {
