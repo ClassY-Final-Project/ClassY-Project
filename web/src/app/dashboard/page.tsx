@@ -694,10 +694,12 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 function EmptyState({ icon, title, text }: { icon: string; title: string; text: string }) {
   return (
-    <div className="h-full flex flex-col items-center justify-center text-center px-6">
-      <div className="text-5xl mb-4 opacity-70">{icon}</div>
-      <h2 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300">{title}</h2>
-      <p className="text-sm text-zinc-400 mt-1 max-w-sm">{text}</p>
+    <div className="h-full flex flex-col items-center justify-center text-center px-6 animate-in fade-in zoom-in-95 duration-500">
+      <div className="w-24 h-24 rounded-3xl bg-linear-to-br from-indigo-500/10 to-violet-500/10 border border-indigo-500/20 flex items-center justify-center text-5xl mb-6 shadow-[0_0_40px_-10px_rgba(99,102,241,0.2)]">
+        {icon}
+      </div>
+      <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">{title}</h2>
+      <p className="text-base text-zinc-500 dark:text-zinc-400 mt-2 max-w-sm font-medium">{text}</p>
     </div>
   );
 }
@@ -723,13 +725,14 @@ function UploadView(props: {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
-      <div className="mb-8">
-        <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+      <div className="mb-10 text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-widest mb-4">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
           {subjectName} · {weekNumber}. Hafta
-        </p>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">PDF Yükle</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          PDF&apos;inizi yükleyin, özet · flashcard · quiz hep birlikte oluşturulsun.
+        </div>
+        <h1 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tight">Ders Notu Yükle</h1>
+        <p className="text-zinc-500 dark:text-zinc-400 mt-2 font-medium">
+          PDF&apos;inizi bırakın, yapay zeka sizin için sihrini yapsın.
         </p>
       </div>
 
@@ -740,10 +743,10 @@ function UploadView(props: {
           onFile(e.dataTransfer.files[0] ?? null);
         }}
         onClick={() => fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${
+        className={`relative overflow-hidden border-2 border-dashed rounded-3xl p-12 text-center cursor-pointer transition-all duration-300 group ${
           file
-            ? "border-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20"
-            : "border-zinc-300 dark:border-zinc-700 hover:border-indigo-400"
+            ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-500/10 shadow-[0_0_40px_-10px_rgba(99,102,241,0.2)]"
+            : "border-zinc-300 dark:border-zinc-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
         }`}
       >
         <input
@@ -777,13 +780,13 @@ function UploadView(props: {
         </div>
       )}
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-8 flex justify-end">
         <button
           onClick={onGenerate}
           disabled={!file || working}
-          className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 disabled:opacity-40 transition-all shadow-sm"
+          className="px-8 py-3.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl font-bold text-sm hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 transition-all shadow-xl shadow-zinc-900/20 dark:shadow-white/10 ring-1 ring-black/5 dark:ring-white/5"
         >
-          {working ? "Oluşturuluyor..." : "Oluştur"}
+          {working ? "Yapay Zeka Çalışıyor..." : "Oluştur"}
         </button>
       </div>
 
@@ -875,24 +878,31 @@ function FlashcardGrid({
   return (
     <>
       <style>{`
-        .flashcard-scene { perspective: 1000px; }
-        .flashcard-inner { position: relative; width: 100%; min-height: 140px; transform-style: preserve-3d; transition: transform 0.55s cubic-bezier(0.4,0,0.2,1); }
+        .flashcard-scene { perspective: 1200px; }
+        .flashcard-inner { position: relative; width: 100%; min-height: 160px; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .flashcard-inner.flipped { transform: rotateY(180deg); }
-        .flashcard-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 1rem; padding: 1.25rem; display: flex; flex-direction: column; justify-content: center; }
+        .flashcard-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 1.5rem; padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; }
         .flashcard-back { transform: rotateY(180deg); }
       `}</style>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {cards.map((card, i) => (
-          <div key={i} className="flashcard-scene cursor-pointer" style={{ minHeight: 140 }} onClick={() => toggleFlip(i)}>
-            <div className={`flashcard-inner${flipped.has(i) ? " flipped" : ""}`} style={{ minHeight: 140 }}>
-              <div className="flashcard-face bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 shadow-sm">
-                <div className="text-xs font-semibold text-indigo-400 mb-2 uppercase tracking-wide">Kart {i + 1}</div>
-                <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">{card.front}</p>
-                <div className="mt-3 text-xs text-zinc-300 dark:text-zinc-600">Çevirmek için tıkla →</div>
+          <div key={i} className="flashcard-scene cursor-pointer group" style={{ minHeight: 160 }} onClick={() => toggleFlip(i)}>
+            <div className={`flashcard-inner${flipped.has(i) ? " flipped" : ""}`} style={{ minHeight: 160 }}>
+              <div className="flashcard-face bg-white dark:bg-[#09090b] border border-zinc-200/60 dark:border-zinc-800 shadow-sm group-hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[10px] font-bold px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-md uppercase tracking-widest">Kart {i + 1}</div>
+                </div>
+                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 leading-relaxed">{card.front}</p>
+                <div className="mt-auto pt-4 text-xs text-zinc-400 font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span>Çevir</span>
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </div>
               </div>
-              <div className="flashcard-face flashcard-back bg-indigo-600 border border-indigo-500 shadow-md">
-                <div className="text-xs font-semibold text-indigo-200 mb-2 uppercase tracking-wide">Cevap</div>
-                <p className="text-sm text-white leading-relaxed">{card.back}</p>
+              <div className="flashcard-face flashcard-back bg-linear-to-br from-indigo-500 to-violet-600 border border-indigo-400/50 shadow-xl shadow-indigo-500/20">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[10px] font-bold px-2 py-1 bg-white/20 text-white rounded-md uppercase tracking-widest">Cevap</div>
+                </div>
+                <p className="text-sm font-medium text-white leading-relaxed">{card.back}</p>
               </div>
             </div>
           </div>
@@ -928,16 +938,20 @@ function ResultView({
       </div>
 
       <section>
-        <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-3">📝 Özet</h2>
-        <div className="bg-white dark:bg-zinc-800/50 rounded-2xl p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap text-sm">
+        <h2 className="text-xl font-black text-zinc-900 dark:text-white mb-4 tracking-tight">📝 Özet</h2>
+        <div className="bg-white dark:bg-[#09090b] rounded-3xl p-8 shadow-sm border border-zinc-200/60 dark:border-zinc-800 leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap text-[15px] font-medium selection:bg-indigo-500/30">
           {generated.summary}
         </div>
       </section>
 
       {generated.flashcards.length > 0 && (
         <section>
-          <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-2">🃏 Flashcardlar</h2>
-          <p className="text-sm text-zinc-400 mb-4">Kartlara tıklayarak çevirin</p>
+          <div className="flex items-end justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-black text-zinc-900 dark:text-white tracking-tight">🃏 Flashcardlar</h2>
+              <p className="text-xs text-zinc-400 font-medium mt-1">Kartlara tıklayarak cevabı gör</p>
+            </div>
+          </div>
           <FlashcardGrid cards={generated.flashcards} flipped={flipped} toggleFlip={toggleFlip} />
         </section>
       )}
