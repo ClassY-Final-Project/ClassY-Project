@@ -84,7 +84,7 @@ export async function POST(request: Request) {
           privacy: "public",
           properties: {
             exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
-            enable_chat: true,
+            enable_chat: false,
             enable_screenshare: true,
             lang: "tr",
           },

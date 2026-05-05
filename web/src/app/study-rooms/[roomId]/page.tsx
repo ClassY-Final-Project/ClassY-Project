@@ -281,9 +281,17 @@ export default function StudyRoomPage() {
         iframeStyle: { width: "100%", height: "100%", border: "none", borderRadius: "12px" },
         showLeaveButton: false, showFullscreenButton: true,
         showParticipantsBar: false,
+        cssText: `
+          button[aria-label*="Chat"],
+          button[aria-label*="Sohbet"],
+          button[data-testid="chat-button"],
+          .daily-chat-button {
+            display: none !important;
+          }
+        `
       });
-      await callFrameRef.current.join({ url: json.roomUrl, token: json.token });
       setDailyLoaded(true);
+      await callFrameRef.current.join({ url: json.roomUrl, token: json.token });
     } catch (e: any) { setDailyError(e.message || "Sesli oda yüklenemedi."); }
   }
 
@@ -449,8 +457,8 @@ export default function StudyRoomPage() {
         {/* Ana Alan */}
         <div className="lg:col-span-2 space-y-5">
 
-          {room.type === "VOICE" ? (
-            <div ref={dailyContainerRef} className="w-full aspect-video max-h-[420px] bg-zinc-100 dark:bg-gray-900 border border-zinc-200 dark:border-gray-700 rounded-xl overflow-hidden relative">
+          {room.type === "VOICE" && (
+            <div ref={dailyContainerRef} className="w-full h-[500px] bg-zinc-100 dark:bg-gray-900 border border-zinc-200 dark:border-gray-700 rounded-xl overflow-hidden relative">
               {!dailyLoaded && !dailyError && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
@@ -468,9 +476,9 @@ export default function StudyRoomPage() {
                 </div>
               )}
             </div>
-          ) : (
-            <>
-              {/* Duvar Saati */}
+          )}
+
+          {/* Duvar Saati */}
               <div className="bg-white dark:bg-gray-900 border border-zinc-200 dark:border-gray-800 rounded-xl p-6 text-center">
                 <p className="text-6xl font-mono font-bold text-zinc-900 dark:text-white tracking-wider tabular-nums">{clockStr}</p>
                 <p className="text-zinc-400 dark:text-gray-500 text-sm mt-2 capitalize">{dateStr}</p>
@@ -606,8 +614,6 @@ export default function StudyRoomPage() {
                   </>
                 )}
               </div>
-            </>
-          )}
         </div>
 
         {/* Sağ: Katılımcılar + süreleri */}
