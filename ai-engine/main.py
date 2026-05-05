@@ -58,7 +58,7 @@ async def generate_quiz(
         if not 10 <= question_count <= 20:
             raise HTTPException(status_code=400, detail="Soru sayısı 10 ile 20 arasında olmalıdır.")
 
-        if not file.filename.lower().endswith('.pdf'):
+        if not file.filename or not file.filename.lower().endswith('.pdf'):
             raise HTTPException(status_code=400, detail="Sadece PDF kabul edilmektedir.")
             
         contents = await file.read()
@@ -103,7 +103,7 @@ async def generate_quiz(
         )
 
         # JSON temizleme işlemini daha sağlam hale getirelim
-        content_text = response.text
+        content_text = response.text or ""
         if "```json" in content_text:
             clean_text = content_text.split("```json")[1].split("```")[0].strip()
         elif "```" in content_text:
@@ -141,7 +141,7 @@ async def generate_quiz(
 async def generate_study_notes(file: UploadFile = File(...)):
     try:
         # 1. PDF'i oku (Aynı standart işlem)
-        if not file.filename.lower().endswith('.pdf'):
+        if not file.filename or not file.filename.lower().endswith('.pdf'):
             raise HTTPException(status_code=400, detail="Sadece PDF kabul edilmektedir.")
             
         contents = await file.read()
@@ -188,7 +188,7 @@ async def generate_study_notes(file: UploadFile = File(...)):
         
         # 4. JSON Temizliği
         # JSON temizleme işlemini daha sağlam hale getirelim
-        content_text = response.text
+        content_text = response.text or ""
         if "```json" in content_text:
             clean_text = content_text.split("```json")[1].split("```")[0].strip()
         elif "```" in content_text:

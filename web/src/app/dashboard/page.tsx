@@ -4,17 +4,26 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getStudyArea, deleteNote, deleteQuiz, SubjectGroup } from "@/lib/apiClient";
+import {
+  getSubjects,
+  createSubject,
+  deleteSubject,
+  getWeek,
+  generateForWeek,
+  getNote,
+  getMyCourses,
+  SubjectFull,
+  WeekDetail,
+  NoteDetail,
+  MyCourse,
+  GeneratedQuizItem,
+} from "@/lib/apiClient";
 import { DashboardSkeleton } from "@/components/Skeleton";
 import { useToast } from "@/components/Toast";
 
-interface AssignedQuiz {
-  id: string;
-  title: string;
-  subject: string;
-  score: number | null;
-  createdAt: string;
-  instructor: { fullName: string | null; email: string };
+interface SelectedView {
+  weekId: string;
+  noteId?: string;
 }
 
 interface SubjectStat {
@@ -38,23 +47,40 @@ export default function DashboardPage() {
   const router = useRouter();
   const { showToast } = useToast();
 
-  const [dashboard, setDashboard] = useState<SubjectGroup[]>([]);
+  const [openDersler, setOpenDersler] = useState(true);
+  const [openKurslar, setOpenKurslar] = useState(false);
+
+  const [subjects, setSubjects] = useState<SubjectFull[]>([]);
+  const [myCourses, setMyCourses] = useState<MyCourse[]>([]);
   const [fetching, setFetching] = useState(true);
-  const [error, setError] = useState("");
-  const [assignedQuizzes, setAssignedQuizzes] = useState<AssignedQuiz[]>([]);
-  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
-  const [sideTab, setSideTab] = useState<"dersler" | "gelen">("dersler");
+
+  const [openSubjectId, setOpenSubjectId] = useState<string | null>(null);
+  const [openWeekId, setOpenWeekId] = useState<string | null>(null);
+  const [weekDetail, setWeekDetail] = useState<WeekDetail | null>(null);
+  const [view, setView] = useState<SelectedView | null>(null);
+  const [noteDetail, setNoteDetail] = useState<NoteDetail | null>(null);
+  const [weekQuizzes, setWeekQuizzes] = useState<{ id: string; title: string; score: number | null; createdAt: string; noteId: string | null }[]>([]);
+
+  const [showAddSubject, setShowAddSubject] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newWeeks, setNewWeeks] = useState(8);
+  const [creating, setCreating] = useState(false);
+
+  const [file, setFile] = useState<File | null>(null);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [flipped, setFlipped] = useState<Set<number>>(new Set());
+
+  const [generated, setGenerated] = useState<{ noteId: string; quizId: string; summary: string; flashcards: { front: string; back: string }[]; quiz: GeneratedQuizItem[] } | null>(null);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
+  const [showResults, setShowResults] = useState(false);
+
   const [activeView, setActiveView] = useState<"dashboard" | "karne">("dashboard");
   const [studyStats, setStudyStats] = useState<SubjectStat[]>([]);
   const [totalStudySeconds, setTotalStudySeconds] = useState(0);
   const [loadingStats, setLoadingStats] = useState(false);
-
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [editSubject, setEditSubject] = useState("");
-  const [editNewSubject, setEditNewSubject] = useState("");
-  const [editMode, setEditMode] = useState<"existing" | "new">("existing");
-  const [savingSubject, setSavingSubject] = useState(false);
-  const editRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -63,10 +89,21 @@ export default function DashboardPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (!token) return;
-    loadDashboard();
-    loadAssignedQuizzes();
-  }, [token]);
+    if (!user) return;
+    loadAll();
+  }, [user]);
+
+  useEffect(() => {
+    if (activeView === "karne") loadStudyStats();
+  }, [activeView]); // eslint-disable-line
+
+  async function loadAll() {
+    setFetching(true);
+    const [s, c] = await Promise.all([getSubjects(), getMyCourses()]);
+    if (s.ok) setSubjects(s.subjects || []);
+    if (c.ok) setMyCourses(c.courses || []);
+    setFetching(false);
+  }
 
   async function loadStudyStats() {
     if (!token) return;
@@ -85,163 +122,260 @@ export default function DashboardPage() {
     }
   }
 
-  useEffect(() => {
-    if (activeView === "karne") loadStudyStats();
-  }, [activeView]); // eslint-disable-line
-
-  async function loadAssignedQuizzes() {
-    try {
-      const res = await fetch("/api/instructor/quiz/assigned", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      setAssignedQuizzes(json.quizzes || []);
-    } catch {
-      // sessizce geç
+  async function selectWeek(weekId: string) {
+    setOpenWeekId(weekId);
+    setView(null);
+    setNoteDetail(null);
+    setGenerated(null);
+    const res = await getWeek(weekId);
+    if (res.ok && res.data) {
+      setWeekDetail(res.data);
+      setWeekQuizzes(res.data.quizzes);
     }
   }
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (editRef.current && !editRef.current.contains(e.target as Node)) {
-        setEditingNoteId(null);
+  async function selectNote(weekId: string, noteId: string) {
+    setView({ weekId, noteId });
+    setGenerated(null);
+    setFile(null);
+    setSelectedAnswers({});
+    setShowResults(false);
+    setFlipped(new Set());
+    const res = await getNote(noteId);
+    if (res.ok && res.note) setNoteDetail(res.note);
+  }
+
+  function startNewUpload(weekId: string) {
+    setView({ weekId });
+    setNoteDetail(null);
+    setGenerated(null);
+    setFile(null);
+    setError(null);
+    setSelectedAnswers({});
+    setShowResults(false);
+    setFlipped(new Set());
+  }
+
+  function handleFileSelect(f: File | null) {
+    if (!f) return;
+    if (f.type !== "application/pdf") {
+      setError("Lütfen PDF seçin.");
+      return;
+    }
+    setError(null);
+    setFile(f);
+  }
+
+  async function handleGenerate() {
+    if (!file || !view?.weekId) return;
+    setWorking(true);
+    setError(null);
+    const res = await generateForWeek(view.weekId, file, 10);
+    if (res.ok && res.data) {
+      setGenerated(res.data);
+      const wk = await getWeek(view.weekId);
+      if (wk.ok && wk.data) {
+        setWeekDetail(wk.data);
+        setWeekQuizzes(wk.data.quizzes);
       }
-    }
-    if (editingNoteId) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [editingNoteId]);
-
-  async function loadDashboard() {
-    setFetching(true);
-    const result = await getStudyArea();
-    if (result.ok) {
-      const groups = result.dashboard || [];
-      setDashboard(groups);
-      if (groups.length > 0 && !selectedSubject) {
-        setSelectedSubject(groups[0].subject);
-      }
+      const s = await getSubjects();
+      if (s.ok) setSubjects(s.subjects || []);
     } else {
-      setError(result.error || "Veri yüklenemedi.");
+      setError(res.error || "Üretim başarısız.");
     }
-    setFetching(false);
+    setWorking(false);
   }
 
-  async function handleDeleteNote(noteId: string) {
-    if (!confirm("Bu notu silmek istediğinizden emin misiniz?")) return;
-    const { ok } = await deleteNote(noteId);
-    if (ok) {
-      showToast("Not silindi.", "success");
-      loadDashboard();
+  async function handleAddSubject() {
+    if (!newName.trim()) return;
+    setCreating(true);
+    const res = await createSubject(newName.trim(), newWeeks);
+    if (res.ok && res.subject) {
+      setSubjects((prev) => [...prev, res.subject!]);
+      setOpenSubjectId(res.subject.id);
+      setShowAddSubject(false);
+      setNewName("");
+      setNewWeeks(8);
+      showToast("Ders eklendi.", "success");
     } else {
-      showToast("Not silinemedi.", "error");
+      showToast(res.error || "Eklenemedi.", "error");
     }
+    setCreating(false);
   }
 
-  async function handleDeleteQuiz(quizId: string) {
-    if (!confirm("Bu quizi silmek istediğinizden emin misiniz?")) return;
-    const { ok } = await deleteQuiz(quizId);
-    if (ok) {
-      showToast("Quiz silindi.", "success");
-      loadDashboard();
-    } else {
-      showToast("Quiz silinemedi.", "error");
-    }
-  }
-
-  function openEditSubject(noteId: string, currentSubject: string) {
-    setEditingNoteId(noteId);
-    setEditSubject(currentSubject);
-    setEditNewSubject("");
-    setEditMode("existing");
-  }
-
-  async function handleSaveSubject(noteId: string) {
-    const newSubject = editMode === "new" ? editNewSubject.trim() : editSubject;
-    if (!newSubject) return;
-    setSavingSubject(true);
-    const res = await fetch(`/api/notes/${noteId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ subject: newSubject }),
-    });
+  async function handleDeleteSubject(id: string) {
+    if (!confirm("Bu dersi ve tüm haftalarını silmek istediğinize emin misiniz?")) return;
+    const res = await deleteSubject(id);
     if (res.ok) {
-      setEditingNoteId(null);
-      if (newSubject !== selectedSubject) setSelectedSubject(newSubject);
-      showToast("Ders güncellendi.", "success");
-      await loadDashboard();
-    } else {
-      showToast("Güncellenemedi.", "error");
+      setSubjects((prev) => prev.filter((s) => s.id !== id));
+      if (openSubjectId === id) {
+        setOpenSubjectId(null);
+        setOpenWeekId(null);
+        setView(null);
+      }
+      showToast("Ders silindi.", "success");
     }
-    setSavingSubject(false);
   }
 
-  const allSubjects = dashboard.map((g) => g.subject);
-
-  // İstatistikler
-  const totalNotes = dashboard.reduce((acc, g) => acc + g.items.notes.length, 0);
-  const totalQuizzes = dashboard.reduce((acc, g) => acc + g.items.quizzes.length, 0);
-  const completedQuizzes = dashboard.reduce((acc, g) => acc + g.items.quizzes.filter(q => q.score !== null).length, 0);
+  function toggleFlip(i: number) {
+    setFlipped((prev) => {
+      const n = new Set(prev);
+      n.has(i) ? n.delete(i) : n.add(i);
+      return n;
+    });
+  }
 
   if (loading || fetching) return <DashboardSkeleton />;
 
-  const activeGroup = dashboard.find((g) => g.subject === selectedSubject) || null;
+  const activeSubject = subjects.find((s) => s.id === openSubjectId) || null;
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
-      {dashboard.length === 0 && !error ? (
-        <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-6">
-          <div className="text-5xl mb-4">📚</div>
-          <h2 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 mb-2">Henüz hiç çalışmanız yok</h2>
-          <p className="text-sm text-zinc-400 mb-6">AI asistanı kullanarak PDF&apos;inizden özet veya quiz oluşturun</p>
-          <Link href="/study" className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
-            AI Asistana Git
-          </Link>
-        </div>
-      ) : (
-        <>
-          {/* ─── İstatistik Kartları ─── */}
-          <div className="border-b border-zinc-100 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/40 backdrop-blur-sm">
-            <div className="max-w-5xl mx-auto px-6 py-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-                {[
-                  { label: "Ders", value: dashboard.length, icon: "📚", color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/40" },
-                  { label: "Not", value: totalNotes, icon: "📝", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/40" },
-                  { label: "Quiz", value: totalQuizzes, icon: "📋", color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/40" },
-                  { label: "Tamamlanan", value: completedQuizzes, icon: "✅", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
-                ].map((stat) => (
-                  <div key={stat.label} className="flex items-center gap-3 bg-white dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800 rounded-xl px-4 py-3">
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0 ${stat.bg}`}>
-                      {stat.icon}
+    <div className="bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+      <div className="flex h-[calc(100vh-57px)]">
+        {/* 1. KOLON */}
+        <aside className="w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="p-4">
+            {/* Görünüm Seçici */}
+            <div className="flex gap-1 mb-4 p-1 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl">
+              {([["dashboard", "📂 Dersler"], ["karne", "📊 Karne"]] as const).map(([v, label]) => (
+                <button
+                  key={v}
+                  onClick={() => setActiveView(v)}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    activeView === v
+                      ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
+                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {activeView === "dashboard" && (
+              <>
+                <div className="mb-2">
+                  <div className="flex items-center justify-between px-2 py-2">
+                    <button
+                      onClick={() => setOpenDersler((v) => !v)}
+                      className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400"
+                    >
+                      <ChevronIcon open={openDersler} />
+                      Derslerim
+                      <span className="text-xs text-zinc-400 font-normal">({subjects.length})</span>
+                    </button>
+                    {openDersler && (
+                      <button
+                        onClick={() => setShowAddSubject(true)}
+                        className="px-2 py-0.5 text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-800/50 font-medium"
+                        title="Ders ekle"
+                      >
+                        + Ders
+                      </button>
+                    )}
+                  </div>
+                  {openDersler && (
+                    <div className="mt-1 space-y-0.5">
+                      {subjects.length === 0 && (
+                        <p className="text-xs text-zinc-400 px-3 py-2">Henüz ders eklemediniz.</p>
+                      )}
+                      {subjects.map((s) => {
+                        const isActive = openSubjectId === s.id;
+                        return (
+                          <button
+                            key={s.id}
+                            onClick={() => {
+                              setOpenSubjectId(isActive ? null : s.id);
+                              setOpenWeekId(null);
+                              setView(null);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 text-sm transition-colors ${
+                              isActive
+                                ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300"
+                                : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                            }`}
+                          >
+                            <span className="text-base">📚</span>
+                            <span className="flex-1 truncate font-medium">{s.name}</span>
+                            <span className="text-xs opacity-60">{s.weekCount}h</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <div>
-                      <p className={`text-xl font-bold leading-none ${stat.color}`}>{stat.value}</p>
-                      <p className="text-xs text-zinc-400 mt-0.5">{stat.label}</p>
+                  )}
+                </div>
+
+                <div>
+                  <button
+                    onClick={() => setOpenKurslar((v) => !v)}
+                    className="w-full flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 px-2 py-2"
+                  >
+                    <ChevronIcon open={openKurslar} />
+                    Kurslarım
+                    <span className="text-xs text-zinc-400 font-normal">({myCourses.length})</span>
+                  </button>
+                  {openKurslar && (
+                    <div className="mt-1 space-y-0.5">
+                      {myCourses.length === 0 && (
+                        <p className="text-xs text-zinc-400 px-3 py-2">
+                          Aldığınız kurs yok.{" "}
+                          <Link href="/courses" className="text-indigo-500 hover:underline">
+                            Kataloğa git
+                          </Link>
+                        </p>
+                      )}
+                      {myCourses.map((c) => (
+                        <Link
+                          key={c.id}
+                          href={`/courses/${c.id}`}
+                          className="w-full block px-3 py-2 rounded-lg text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 truncate"
+                        >
+                          🎓 {c.title}
+                        </Link>
+                      ))}
                     </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {activeView === "karne" && (
+              <div className="mt-1">
+                <p className="text-xs text-zinc-400 px-2 mb-3">
+                  Toplam:{" "}
+                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                    {formatDuration(totalStudySeconds)}
+                  </span>
+                </p>
+                {studyStats.map((s) => (
+                  <div key={s.subject} className="px-2 py-1.5 mb-1">
+                    <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 truncate">{s.subject}</p>
+                    <p className="text-[10px] text-zinc-400">{formatDuration(s.studySeconds)} · {s.noteCount} not</p>
                   </div>
                 ))}
               </div>
-              <div className="flex gap-2">
-                {([["dashboard", "📂 Çalışmalarım"], ["karne", "📊 Karne"]] as const).map(([v, label]) => (
-                  <button key={v} onClick={() => setActiveView(v)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeView === v ? "bg-indigo-600 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"}`}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
+        </aside>
 
-          {/* ─── Karne Görünümü ─── */}
-          {activeView === "karne" && (
+        {/* Karne Ana İçeriği */}
+        {activeView === "karne" && (
+          <main className="flex-1 overflow-y-auto">
             <div className="max-w-4xl mx-auto px-6 py-8">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Çalışma Karnem</h2>
                   <p className="text-sm text-zinc-400 mt-0.5">
-                    Toplam çalışma: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{formatDuration(totalStudySeconds)}</span>
+                    Toplam çalışma:{" "}
+                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                      {formatDuration(totalStudySeconds)}
+                    </span>
                   </p>
                 </div>
-                <button onClick={loadStudyStats} className="text-sm text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
+                <button
+                  onClick={loadStudyStats}
+                  className="text-sm text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                >
                   ↻ Yenile
                 </button>
               </div>
@@ -252,36 +386,56 @@ export default function DashboardPage() {
                 <div className="text-center py-16">
                   <p className="text-4xl mb-3">📊</p>
                   <p className="text-zinc-500 text-sm">Henüz çalışma istatistiği yok.</p>
-                  <p className="text-zinc-400 text-xs mt-1">Çalışma odalarına katılın, not ve quiz oluşturun.</p>
+                  <p className="text-zinc-400 text-xs mt-1">
+                    Çalışma odalarına katılın, not ve quiz oluşturun.
+                  </p>
                 </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {studyStats.map((stat) => {
-                    const pct = totalStudySeconds > 0 ? Math.round((stat.studySeconds / totalStudySeconds) * 100) : 0;
+                    const pct =
+                      totalStudySeconds > 0
+                        ? Math.round((stat.studySeconds / totalStudySeconds) * 100)
+                        : 0;
                     return (
-                      <div key={stat.subject} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5">
+                      <div
+                        key={stat.subject}
+                        className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5"
+                      >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm shrink-0">
                               {stat.subject.charAt(0).toUpperCase()}
                             </div>
-                            <p className="font-semibold text-zinc-900 dark:text-white text-sm">{stat.subject}</p>
+                            <p className="font-semibold text-zinc-900 dark:text-white text-sm">
+                              {stat.subject}
+                            </p>
                           </div>
                           {stat.avgScore !== null && (
-                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stat.avgScore >= 70 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : stat.avgScore >= 50 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                            <span
+                              className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                stat.avgScore >= 70
+                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                  : stat.avgScore >= 50
+                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                  : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                              }`}
+                            >
                               %{stat.avgScore}
                             </span>
                           )}
                         </div>
 
-                        {/* Çalışma süresi progress bar */}
                         <div className="mb-3">
                           <div className="flex justify-between text-xs text-zinc-400 mb-1">
                             <span>⏱ {formatDuration(stat.studySeconds)}</span>
                             <span>{pct}%</span>
                           </div>
                           <div className="h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                            <div
+                              className="h-full bg-indigo-500 rounded-full transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
                           </div>
                         </div>
 
@@ -307,242 +461,549 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-          )}
+          </main>
+        )}
 
-          {activeView === "dashboard" && <div className="flex h-[calc(100vh-57px-120px)]">
-            {/* ─── Sol Panel ─── */}
-            <aside className="w-60 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-sm overflow-y-auto">
-              <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-                <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Derslerim</span>
-                <Link href="/study" title="Yeni çalışma"
-                  className="w-6 h-6 flex items-center justify-center rounded-md bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 transition-colors text-sm font-bold">
-                  +
-                </Link>
-              </div>
-              {/* Sol panel sekmeleri */}
-            <div className="flex p-2 gap-1">
-              {([["dersler", "Derslerim"], ["gelen", "Gelen Quizler"]] as const).map(([id, label]) => (
-                <button key={id} onClick={() => setSideTab(id)}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${sideTab === id ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"}`}>
-                  {label}
-                  {id === "gelen" && assignedQuizzes.filter(q => q.score === null).length > 0 && (
-                    <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-1.5">{assignedQuizzes.filter(q => q.score === null).length}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            <nav className="p-2">
-                {error && <p className="text-xs text-red-500 px-2 py-1">{error}</p>}
-                {sideTab === "dersler" && dashboard.map((group) => {
-                  const isActive = group.subject === selectedSubject;
-                  const total = group.items.notes.length + group.items.quizzes.length;
-                  return (
-                    <button key={group.subject} onClick={() => setSelectedSubject(group.subject)}
-                      className={`w-full text-left px-3 py-2.5 rounded-xl mb-1 flex items-center gap-3 transition-all ${
-                        isActive
-                          ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400"
-                          : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 hover:text-zinc-900 dark:hover:text-white"
-                      }`}>
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                        isActive ? "bg-indigo-600 text-white" : "bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400"
-                      }`}>
-                        {group.subject.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{group.subject}</p>
-                        <p className="text-xs opacity-60">{total} öğe</p>
-                      </div>
-                    </button>
-                  );
-                })}
-
-                {sideTab === "gelen" && (
-                  assignedQuizzes.length === 0 ? (
-                    <p className="text-xs text-zinc-400 px-3 py-4 text-center">Gelen quiz yok.</p>
-                  ) : (
-                    assignedQuizzes.map((q) => (
-                      <Link key={q.id} href={`/study/quiz/${q.id}`}
-                        className="w-full text-left px-3 py-2.5 rounded-xl mb-1 flex items-center gap-3 transition-all text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 hover:text-zinc-900 dark:hover:text-white">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400">
-                          📋
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{q.title}</p>
-                          <p className="text-xs opacity-60 truncate">{q.instructor.fullName || q.instructor.email}</p>
-                        </div>
-                        {q.score !== null ? (
-                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">%{q.score}</span>
-                        ) : (
-                          <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+        {/* Dashboard Ana İçeriği */}
+        {activeView === "dashboard" && (
+          <>
+            {/* 2. KOLON: Haftalar */}
+            {activeSubject && (
+              <aside className="w-56 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/40 backdrop-blur-sm overflow-y-auto">
+                <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Ders</p>
+                    <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200 truncate">{activeSubject.name}</p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteSubject(activeSubject.id)}
+                    title="Dersi sil"
+                    className="text-zinc-300 hover:text-red-500 text-xl leading-none px-1"
+                  >
+                    ×
+                  </button>
+                </div>
+                <nav className="p-2">
+                  {activeSubject.weeks.map((w) => {
+                    const isActive = openWeekId === w.id;
+                    const hasContent = w._count.notes > 0 || w._count.quizzes > 0;
+                    return (
+                      <button
+                        key={w.id}
+                        onClick={() => selectWeek(w.id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 text-sm mb-0.5 transition-colors ${
+                          isActive
+                            ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300"
+                            : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                        }`}
+                      >
+                        <span className="flex-1">{w.weekNumber}. Hafta</span>
+                        {hasContent && (
+                          <span className="text-xs bg-indigo-200 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-full px-1.5">
+                            {w._count.notes}
+                          </span>
                         )}
-                      </Link>
-                    ))
-                  )
-                )}
-              </nav>
-            </aside>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </aside>
+            )}
 
-            {/* ─── İçerik Alanı ─── */}
+            {/* 3. KOLON: PDF listesi */}
+            {activeSubject && openWeekId && weekDetail && (
+              <aside className="w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 backdrop-blur-sm overflow-y-auto">
+                <div className="p-4 border-b border-zinc-100 dark:border-zinc-800">
+                  <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                    {weekDetail.week.weekNumber}. Hafta
+                  </p>
+                  <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">PDF&apos;ler</p>
+                </div>
+                <div className="p-2">
+                  <button
+                    onClick={() => startNewUpload(openWeekId)}
+                    className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 text-sm mb-2 transition-colors ${
+                      view && !view.noteId
+                        ? "bg-indigo-600 text-white"
+                        : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
+                    }`}
+                  >
+                    <span>＋</span>
+                    <span className="font-medium">Yeni PDF Yükle</span>
+                  </button>
+                  {weekDetail.notes.length === 0 && (
+                    <p className="text-xs text-zinc-400 px-3 py-3">Bu haftada henüz PDF yok.</p>
+                  )}
+                  {weekDetail.notes.map((n) => {
+                    const isActive = view?.noteId === n.id;
+                    return (
+                      <button
+                        key={n.id}
+                        onClick={() => selectNote(openWeekId, n.id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg flex items-start gap-2 text-sm mb-0.5 transition-colors ${
+                          isActive
+                            ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300"
+                            : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                        }`}
+                      >
+                        <span className="text-base shrink-0">📄</span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block truncate text-xs font-medium">{n.fileName}</span>
+                          <span className="block text-[10px] opacity-60">
+                            {new Date(n.uploadedAt).toLocaleDateString("tr-TR")}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
+            )}
+
+            {/* İçerik */}
             <main className="flex-1 overflow-y-auto">
-              {activeGroup ? (
-                <div className="max-w-3xl mx-auto px-6 py-8">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-lg">
-                        {activeGroup.subject.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <h1 className="text-xl font-bold text-zinc-900 dark:text-white">{activeGroup.subject}</h1>
-                        <p className="text-xs text-zinc-400">{activeGroup.items.notes.length} not · {activeGroup.items.quizzes.length} quiz</p>
-                      </div>
-                    </div>
-                    <Link href="/study" className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
-                      + Yeni Çalışma
-                    </Link>
+              {!activeSubject ? (
+                <EmptyState
+                  icon="📚"
+                  title="Çalışma alanına hoş geldiniz"
+                  text="Sol menüden bir ders seçin veya '+ Ders' ile yeni ders oluşturun."
+                />
+              ) : !openWeekId ? (
+                <EmptyState
+                  icon="📅"
+                  title={activeSubject.name}
+                  text="Bir hafta seçerek o haftaya ait PDF, özet, flashcard ve quizleri görüntüleyebilirsiniz."
+                />
+              ) : !view ? (
+                <EmptyState
+                  icon="📄"
+                  title={`${weekDetail?.week.weekNumber}. Hafta`}
+                  text="Sol listeden bir PDF seçin veya yeni PDF yükleyin."
+                />
+              ) : !view.noteId ? (
+                <UploadView
+                  subjectName={activeSubject.name}
+                  weekNumber={weekDetail?.week.weekNumber || 0}
+                  file={file}
+                  fileInputRef={fileInputRef}
+                  onFile={handleFileSelect}
+                  onGenerate={handleGenerate}
+                  working={working}
+                  error={error}
+                  generated={generated}
+                  flipped={flipped}
+                  toggleFlip={toggleFlip}
+                  selectedAnswers={selectedAnswers}
+                  setSelectedAnswers={setSelectedAnswers}
+                  showResults={showResults}
+                  setShowResults={setShowResults}
+                />
+              ) : (
+                <div className="max-w-3xl mx-auto px-6 py-10">
+                  <div className="mb-8">
+                    <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                      {activeSubject.name} · {weekDetail?.week.weekNumber}. Hafta
+                    </p>
+                    <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mt-1 truncate">
+                      {noteDetail?.fileName || "Yükleniyor..."}
+                    </h1>
                   </div>
 
-                  {/* Notlar */}
-                  {activeGroup.items.notes.length > 0 && (
-                    <section className="mb-8">
-                      <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">📝 Notlar & Özetler</h2>
-                      <div className="space-y-3">
-                        {activeGroup.items.notes.map((note) => (
-                          <div key={note.id} className="relative">
-                            <div className="bg-white dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 flex items-start gap-3">
-                              <div className="text-2xl shrink-0">📄</div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">{note.fileName}</p>
-                                <p className="text-xs text-zinc-400 mt-0.5">
-                                  {new Date(note.uploadedAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}
-                                </p>
-                                <span className={`inline-block mt-2 text-xs px-2 py-0.5 rounded-full font-medium ${
-                                  note.processedStatus === "COMPLETED"
-                                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                    : note.processedStatus === "FAILED"
-                                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                                    : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                                }`}>
-                                  {note.processedStatus === "COMPLETED" ? "Tamamlandı" : note.processedStatus === "FAILED" ? "Hata" : "İşleniyor"}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1 shrink-0">
-                                <button onClick={() => openEditSubject(note.id, activeGroup.subject)} title="Dersi değiştir"
-                                  className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
-                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                </button>
-                                <button onClick={() => handleDeleteNote(note.id)} title="Sil"
-                                  className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-300 hover:text-red-500 dark:text-zinc-600 dark:hover:text-red-400 transition-colors text-lg leading-none">
-                                  ×
-                                </button>
-                              </div>
-                            </div>
-
-                            {editingNoteId === note.id && (
-                              <div ref={editRef}
-                                className="absolute right-0 top-full mt-1 z-20 w-72 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-lg p-4">
-                                <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">Dersi Değiştir</p>
-                                <div className="flex flex-wrap gap-1.5 mb-3">
-                                  {allSubjects.map((s) => (
-                                    <button key={s}
-                                      onClick={() => { setEditMode("existing"); setEditSubject(s); }}
-                                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
-                                        editMode === "existing" && editSubject === s
-                                          ? "bg-indigo-600 text-white border-indigo-600"
-                                          : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-indigo-300"
-                                      }`}>
-                                      {s}
-                                    </button>
-                                  ))}
-                                  <button onClick={() => setEditMode("new")}
-                                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
-                                      editMode === "new"
-                                        ? "bg-indigo-600 text-white border-indigo-600"
-                                        : "border-dashed border-zinc-300 dark:border-zinc-600 text-zinc-500 hover:border-indigo-400"
-                                    }`}>
-                                    + Yeni Ders
-                                  </button>
-                                </div>
-                                {editMode === "new" && (
-                                  <input type="text" value={editNewSubject} onChange={(e) => setEditNewSubject(e.target.value)}
-                                    placeholder="Ders adı (ör. Fizik, Tarih...)" autoFocus
-                                    className="w-full px-3 py-2 mb-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" />
-                                )}
-                                <div className="flex gap-2">
-                                  <button onClick={() => handleSaveSubject(note.id)}
-                                    disabled={savingSubject || (editMode === "new" && !editNewSubject.trim())}
-                                    className="flex-1 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors">
-                                    {savingSubject ? "Kaydediliyor..." : "Kaydet"}
-                                  </button>
-                                  <button onClick={() => setEditingNoteId(null)}
-                                    className="px-3 py-1.5 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs text-zinc-500 hover:border-red-300 hover:text-red-500 transition-colors">
-                                    İptal
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Quizler */}
-                  {activeGroup.items.quizzes.length > 0 && (
-                    <section>
-                      <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">📋 Quizler</h2>
-                      <div className="space-y-3">
-                        {activeGroup.items.quizzes.map((quiz) => (
-                          <Link key={quiz.id} href={`/study/quiz/${quiz.id}`}
-                            className="bg-white dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 flex items-start gap-3 hover:border-indigo-200 dark:hover:border-indigo-700 hover:shadow-sm transition-all group">
-                            <div className="text-2xl shrink-0">📋</div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">
-                                {quiz.title}
-                              </p>
-                              <p className="text-xs text-zinc-400 mt-0.5">
-                                {new Date(quiz.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}
-                              </p>
-                              {quiz.score !== null ? (
-                                <span className="inline-block mt-2 text-xs px-2 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
-                                  Skor: {quiz.score}%
-                                </span>
-                              ) : (
-                                <span className="inline-block mt-2 text-xs px-2 py-0.5 rounded-full font-medium bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
-                                  Çözülmedi
-                                </span>
-                              )}
-                            </div>
-                            <button onClick={(e) => { e.preventDefault(); handleDeleteQuiz(quiz.id); }}
-                              className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-300 hover:text-red-500 dark:text-zinc-600 dark:hover:text-red-400 transition-colors text-lg leading-none shrink-0"
-                              title="Sil">
-                              ×
-                            </button>
-                          </Link>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  {activeGroup.items.notes.length === 0 && activeGroup.items.quizzes.length === 0 && (
-                    <div className="text-center py-16">
-                      <p className="text-zinc-400 text-sm">Bu derse ait henüz içerik yok.</p>
-                      <Link href="/study" className="text-indigo-600 dark:text-indigo-400 text-sm hover:underline mt-2 inline-block">
-                        Yeni çalışma oluştur →
-                      </Link>
+                  {noteDetail ? (
+                    <SavedView
+                      note={noteDetail}
+                      weekQuizzes={weekQuizzes.filter((q) => q.noteId === noteDetail.id)}
+                      flipped={flipped}
+                      toggleFlip={toggleFlip}
+                    />
+                  ) : (
+                    <div className="flex justify-center py-12">
+                      <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
                     </div>
                   )}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full text-zinc-400 text-sm">
-                  Sol panelden bir ders seçin
                 </div>
               )}
             </main>
-          </div>}
-        </>
+          </>
+        )}
+      </div>
+
+      {/* Yeni Ders Modal */}
+      {showAddSubject && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setShowAddSubject(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-1">Yeni Ders Ekle</h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-5">Ders adı ve hafta sayısını belirleyin.</p>
+
+            <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">Ders Adı</label>
+            <input
+              autoFocus
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Örn. Matematik 101"
+              className="w-full px-4 py-2.5 mb-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+
+            <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">
+              Hafta Sayısı: <span className="text-indigo-600">{newWeeks}</span>
+            </label>
+            <input
+              type="range"
+              min={1}
+              max={20}
+              value={newWeeks}
+              onChange={(e) => setNewWeeks(Number(e.target.value))}
+              className="w-full accent-indigo-600 mb-5"
+            />
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAddSubject(false)}
+                className="flex-1 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleAddSubject}
+                disabled={!newName.trim() || creating}
+                className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-40"
+              >
+                {creating ? "Ekleniyor..." : "Ekle"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2.5}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+function EmptyState({ icon, title, text }: { icon: string; title: string; text: string }) {
+  return (
+    <div className="h-full flex flex-col items-center justify-center text-center px-6">
+      <div className="text-5xl mb-4 opacity-70">{icon}</div>
+      <h2 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300">{title}</h2>
+      <p className="text-sm text-zinc-400 mt-1 max-w-sm">{text}</p>
+    </div>
+  );
+}
+
+function UploadView(props: {
+  subjectName: string;
+  weekNumber: number;
+  file: File | null;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  onFile: (f: File | null) => void;
+  onGenerate: () => void;
+  working: boolean;
+  error: string | null;
+  generated: { noteId: string; quizId: string; summary: string; flashcards: { front: string; back: string }[]; quiz: GeneratedQuizItem[] } | null;
+  flipped: Set<number>;
+  toggleFlip: (i: number) => void;
+  selectedAnswers: Record<number, string>;
+  setSelectedAnswers: React.Dispatch<React.SetStateAction<Record<number, string>>>;
+  showResults: boolean;
+  setShowResults: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
+  const { subjectName, weekNumber, file, fileInputRef, onFile, onGenerate, working, error, generated } = props;
+
+  return (
+    <div className="max-w-3xl mx-auto px-6 py-10">
+      <div className="mb-8">
+        <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+          {subjectName} · {weekNumber}. Hafta
+        </p>
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">PDF Yükle</h1>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+          PDF&apos;inizi yükleyin, özet · flashcard · quiz hep birlikte oluşturulsun.
+        </p>
+      </div>
+
+      <div
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          onFile(e.dataTransfer.files[0] ?? null);
+        }}
+        onClick={() => fileInputRef.current?.click()}
+        className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${
+          file
+            ? "border-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20"
+            : "border-zinc-300 dark:border-zinc-700 hover:border-indigo-400"
+        }`}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf"
+          className="hidden"
+          onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+        />
+        <div className="text-5xl mb-3">{file ? "📄" : "📤"}</div>
+        {file ? (
+          <>
+            <p className="font-semibold text-indigo-700 dark:text-indigo-400">{file.name}</p>
+            <p className="text-sm text-zinc-400 mt-1">
+              {(file.size / 1024 / 1024).toFixed(2)} MB · değiştirmek için tıklayın
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="font-medium text-zinc-700 dark:text-zinc-300">
+              PDF dosyanızı sürükleyin veya tıklayın
+            </p>
+            <p className="text-sm text-zinc-400 mt-1">Bu hafta için ders notu</p>
+          </>
+        )}
+      </div>
+
+      {error && (
+        <div className="mt-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm">
+          {error}
+        </div>
+      )}
+
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={onGenerate}
+          disabled={!file || working}
+          className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 disabled:opacity-40 transition-all shadow-sm"
+        >
+          {working ? "Oluşturuluyor..." : "Oluştur"}
+        </button>
+      </div>
+
+      {working && (
+        <div className="mt-12 flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+          <p className="text-zinc-500 text-sm">Özet, flashcard ve quiz birlikte hazırlanıyor...</p>
+        </div>
+      )}
+
+      {generated && <ResultView {...props} generated={generated} />}
+    </div>
+  );
+}
+
+function SavedView({
+  note,
+  weekQuizzes,
+  flipped,
+  toggleFlip,
+}: {
+  note: NoteDetail;
+  weekQuizzes: { id: string; title: string; score: number | null; createdAt: string; noteId: string | null }[];
+  flipped: Set<number>;
+  toggleFlip: (i: number) => void;
+}) {
+  return (
+    <div className="space-y-10">
+      {note.summary && (
+        <section>
+          <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-3">📝 Özet</h2>
+          <div className="bg-white dark:bg-zinc-800/50 rounded-2xl p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap text-sm">
+            {note.summary}
+          </div>
+        </section>
+      )}
+
+      {note.flashcards.length > 0 && (
+        <section>
+          <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-2">🃏 Flashcardlar</h2>
+          <p className="text-sm text-zinc-400 mb-4">Kartlara tıklayarak çevirin</p>
+          <FlashcardGrid cards={note.flashcards} flipped={flipped} toggleFlip={toggleFlip} />
+        </section>
+      )}
+
+      {weekQuizzes.length > 0 && (
+        <section>
+          <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-3">📋 Quizler</h2>
+          <div className="space-y-2">
+            {weekQuizzes.map((q) => (
+              <Link
+                key={q.id}
+                href={`/study/quiz/${q.id}`}
+                className="block bg-white dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 hover:border-indigo-200 dark:hover:border-indigo-700 hover:shadow-sm transition-all"
+              >
+                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">{q.title}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-zinc-400">
+                    {new Date(q.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}
+                  </p>
+                  {q.score !== null ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 font-medium">
+                      Skor: %{q.score}
+                    </span>
+                  ) : (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400 font-medium">
+                      Çözülmedi
+                    </span>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function FlashcardGrid({
+  cards,
+  flipped,
+  toggleFlip,
+}: {
+  cards: { front: string; back: string }[];
+  flipped: Set<number>;
+  toggleFlip: (i: number) => void;
+}) {
+  return (
+    <>
+      <style>{`
+        .flashcard-scene { perspective: 1000px; }
+        .flashcard-inner { position: relative; width: 100%; min-height: 140px; transform-style: preserve-3d; transition: transform 0.55s cubic-bezier(0.4,0,0.2,1); }
+        .flashcard-inner.flipped { transform: rotateY(180deg); }
+        .flashcard-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 1rem; padding: 1.25rem; display: flex; flex-direction: column; justify-content: center; }
+        .flashcard-back { transform: rotateY(180deg); }
+      `}</style>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {cards.map((card, i) => (
+          <div key={i} className="flashcard-scene cursor-pointer" style={{ minHeight: 140 }} onClick={() => toggleFlip(i)}>
+            <div className={`flashcard-inner${flipped.has(i) ? " flipped" : ""}`} style={{ minHeight: 140 }}>
+              <div className="flashcard-face bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 shadow-sm">
+                <div className="text-xs font-semibold text-indigo-400 mb-2 uppercase tracking-wide">Kart {i + 1}</div>
+                <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">{card.front}</p>
+                <div className="mt-3 text-xs text-zinc-300 dark:text-zinc-600">Çevirmek için tıkla →</div>
+              </div>
+              <div className="flashcard-face flashcard-back bg-indigo-600 border border-indigo-500 shadow-md">
+                <div className="text-xs font-semibold text-indigo-200 mb-2 uppercase tracking-wide">Cevap</div>
+                <p className="text-sm text-white leading-relaxed">{card.back}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ResultView({
+  generated,
+  flipped,
+  toggleFlip,
+  selectedAnswers,
+  setSelectedAnswers,
+  showResults,
+  setShowResults,
+}: {
+  generated: { noteId: string; quizId: string; summary: string; flashcards: { front: string; back: string }[]; quiz: GeneratedQuizItem[] };
+  flipped: Set<number>;
+  toggleFlip: (i: number) => void;
+  selectedAnswers: Record<number, string>;
+  setSelectedAnswers: React.Dispatch<React.SetStateAction<Record<number, string>>>;
+  showResults: boolean;
+  setShowResults: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
+  const correctCount = generated.quiz.filter((q, i) => selectedAnswers[i] === q.answer).length;
+
+  return (
+    <div className="mt-10 space-y-10">
+      <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl text-green-700 dark:text-green-400 text-sm">
+        ✓ Özet, flashcard ve quiz oluşturuldu ve bu haftaya kaydedildi.
+      </div>
+
+      <section>
+        <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-3">📝 Özet</h2>
+        <div className="bg-white dark:bg-zinc-800/50 rounded-2xl p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap text-sm">
+          {generated.summary}
+        </div>
+      </section>
+
+      {generated.flashcards.length > 0 && (
+        <section>
+          <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-2">🃏 Flashcardlar</h2>
+          <p className="text-sm text-zinc-400 mb-4">Kartlara tıklayarak çevirin</p>
+          <FlashcardGrid cards={generated.flashcards} flipped={flipped} toggleFlip={toggleFlip} />
+        </section>
+      )}
+
+      {generated.quiz.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200">📋 Quiz ({generated.quiz.length} Soru)</h2>
+            {showResults && (
+              <span className="text-sm font-bold text-indigo-700 dark:text-indigo-400">
+                {correctCount} / {generated.quiz.length}
+              </span>
+            )}
+          </div>
+          <div className="space-y-3">
+            {generated.quiz.map((q, i) => (
+              <div key={i} className="bg-white dark:bg-zinc-800/50 rounded-2xl p-5 border border-zinc-100 dark:border-zinc-800">
+                <p className="font-medium text-zinc-800 dark:text-zinc-200 mb-3 text-sm">
+                  {i + 1}. {q.question}
+                </p>
+                <div className="space-y-2">
+                  {q.options.map((opt, j) => {
+                    const picked = selectedAnswers[i] === opt;
+                    const isRight = showResults && q.answer === opt;
+                    const isWrong = showResults && picked && q.answer !== opt;
+                    return (
+                      <button
+                        key={j}
+                        disabled={showResults}
+                        onClick={() => setSelectedAnswers((p) => ({ ...p, [i]: opt }))}
+                        className={`w-full text-left px-4 py-2 rounded-lg text-sm border transition-colors ${
+                          isRight
+                            ? "bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300"
+                            : isWrong
+                            ? "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300"
+                            : picked
+                            ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300"
+                            : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-indigo-300"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {!showResults ? (
+            <button
+              onClick={() => setShowResults(true)}
+              disabled={Object.keys(selectedAnswers).length !== generated.quiz.length}
+              className="mt-4 w-full py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-40"
+            >
+              Cevapları Göster
+            </button>
+          ) : (
+            <Link
+              href={`/study/quiz/${generated.quizId}`}
+              className="mt-4 block text-center py-2.5 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 rounded-xl text-sm font-medium hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+            >
+              Detaylı görüntüle →
+            </Link>
+          )}
+        </section>
       )}
     </div>
   );

@@ -89,7 +89,6 @@ export default function Navbar() {
         ]
       : [
           { href: "/dashboard", label: "Çalışma Alanım" },
-          { href: "/study", label: "AI Asistan" },
           { href: "/study-rooms", label: "📚 Odalar" },
           { href: "/live", label: "🔴 Canlı Ders" },
           { href: "/instructors", label: "Eğitmenler" },
