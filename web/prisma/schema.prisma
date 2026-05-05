@@ -42,6 +42,7 @@ model User {
   subjects                Subject[]
   studyRoomsCreated       StudyRoom[]            @relation("StudyRoomsCreated")
   studyRoomParticipations StudyRoomParticipant[]
+  studyRoomMessages       StudyRoomMessage[]
 }
 
 // --- 2. MARKETPLACE ---
@@ -347,8 +348,23 @@ model StudyRoom {
 
   createdBy    User                   @relation("StudyRoomsCreated", fields: [createdById], references: [id], onDelete: Cascade)
   participants StudyRoomParticipant[]
+  messages     StudyRoomMessage[]
 
   @@map("study_rooms")
+}
+
+model StudyRoomMessage {
+  id        String   @id @default(uuid())
+  roomId    String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  room StudyRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+  @@map("study_room_messages")
 }
 
 model StudyRoomParticipant {

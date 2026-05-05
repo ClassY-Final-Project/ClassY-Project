@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     );
 
     return NextResponse.json({ rooms: sorted });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Study rooms GET hatası:", err);
     return NextResponse.json({ error: "Sunucu hatası." }, { status: 500 });
   }
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ room, inviteCode }, { status: 201 });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Study rooms POST hatası:", err);
     return NextResponse.json({ error: "Sunucu hatası." }, { status: 500 });
   }

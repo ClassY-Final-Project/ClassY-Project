@@ -121,6 +121,13 @@ export default function StudyRoomPage() {
   const [dailyLoaded, setDailyLoaded] = useState(false);
   const [dailyError, setDailyError] = useState("");
 
+  // Chat state for silent rooms
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{id: string; sender: string; senderId?: string; text: string; time: string}[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const isOwner = room && user && room.createdById === user.id;
   const isAdmin = user?.role === "ADMIN";
   const isScheduled = !room?.isPrivate && !!room?.scheduledStart;
@@ -156,6 +163,16 @@ export default function StudyRoomPage() {
     const i = setInterval(loadRoom, 10000);
     return () => clearInterval(i);
   }, [token, user, loadRoom]);
+
+  // Check for room expiration
+  useEffect(() => {
+    if (!room?.scheduledEnd || !joined) return;
+    if (now.getTime() > new Date(room.scheduledEnd).getTime()) {
+      showToast("Odanın süresi doldu, kapanıyor.", "info");
+      leaveRoom();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [now, room?.scheduledEnd, joined]);
 
   useEffect(() => {
     if (joined && room?.type === "VOICE" && dailyContainerRef.current && !callFrameRef.current) {
@@ -230,7 +247,7 @@ export default function StudyRoomPage() {
     } finally { setJoining(false); }
   }
 
-  async function leaveRoom() {
+  const leaveRoom = useCallback(async () => {
     try {
       await fetch(`/api/study-rooms/${roomId}/leave`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
       if (callFrameRef.current) {
@@ -240,7 +257,7 @@ export default function StudyRoomPage() {
       setJoined(false); setTimerRunning(false);
       router.push("/study-rooms");
     } catch { showToast("Bir hata oluştu.", "error"); }
-  }
+  }, [roomId, token, router, showToast]);
 
   async function closeRoom() {
     if (!confirm("Odayı kapatmak istediğinize emin misiniz?")) return;
@@ -263,6 +280,7 @@ export default function StudyRoomPage() {
       callFrameRef.current = DailyIframe.createFrame(dailyContainerRef.current, {
         iframeStyle: { width: "100%", height: "100%", border: "none", borderRadius: "12px" },
         showLeaveButton: false, showFullscreenButton: true,
+        showParticipantsBar: false,
       });
       await callFrameRef.current.join({ url: json.roomUrl, token: json.token });
       setDailyLoaded(true);
@@ -274,6 +292,63 @@ export default function StudyRoomPage() {
     navigator.clipboard.writeText(`${window.location.origin}/study-rooms/join/${room.inviteCode}`);
     showToast("Davet linki kopyalandı!", "success");
   }
+
+  // --- Chat functions ---
+  const loadChat = useCallback(async (afterTime?: string) => {
+    if (!token) return;
+    try {
+      const url = afterTime
+        ? `/api/study-rooms/${roomId}/chat?after=${encodeURIComponent(afterTime)}`
+        : `/api/study-rooms/${roomId}/chat`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const json = await res.json();
+      if (json.messages && json.messages.length > 0) {
+        setChatMessages(prev => {
+          const ids = new Set(prev.map(m => m.id));
+          const newMsgs = json.messages.filter((m: any) => !ids.has(m.id));
+          return [...prev, ...newMsgs];
+        });
+      }
+    } catch {}
+  }, [token, roomId]);
+
+  async function sendChat() {
+    if (!chatInput.trim() || !token) return;
+    const text = chatInput.trim();
+    setChatInput("");
+    try {
+      const res = await fetch(`/api/study-rooms/${roomId}/chat`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const json = await res.json();
+      if (json.message) {
+        setChatMessages(prev => {
+          const ids = new Set(prev.map(m => m.id));
+          if (ids.has(json.message.id)) return prev;
+          return [...prev, json.message];
+        });
+      }
+    } catch {}
+  }
+
+  useEffect(() => {
+    if (!joined || !chatOpen) return;
+    loadChat();
+    chatPollRef.current = setInterval(() => {
+      setChatMessages(prev => {
+        const last = prev.length > 0 ? prev[prev.length - 1].time : undefined;
+        loadChat(last);
+        return prev;
+      });
+    }, 3000);
+    return () => { if (chatPollRef.current) clearInterval(chatPollRef.current); };
+  }, [joined, chatOpen, loadChat]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
 
   function formatTime(s: number) {
     return `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
@@ -338,9 +413,9 @@ export default function StudyRoomPage() {
   }
 
   return (
-    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 text-zinc-900 dark:text-white">
+    <div className="w-full flex-1 flex flex-col overflow-hidden bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 text-zinc-900 dark:text-white">
       {/* Header */}
-      <div className="border-b border-zinc-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-6 py-3 flex items-center justify-between">
+      <div className="shrink-0 border-b border-zinc-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-xl">{room.type === "VOICE" ? "🎙️" : "🤫"}</span>
           <div>
@@ -357,6 +432,10 @@ export default function StudyRoomPage() {
           )}
         </div>
         <div className="flex gap-2">
+          <button onClick={() => setChatOpen(v => !v)}
+            className={`px-3 py-1.5 text-xs rounded-lg transition-colors border ${chatOpen ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border-indigo-300/50 dark:border-indigo-800/50" : "bg-zinc-100 dark:bg-gray-800 text-zinc-700 dark:text-white border-zinc-200 dark:border-gray-700 hover:bg-zinc-200 dark:hover:bg-gray-700"}`}>
+            💬 Sohbet
+          </button>
           {(isOwner || isAdmin) && (
             <button onClick={closeRoom} className="px-3 py-1.5 text-xs text-red-500 dark:text-red-400 border border-red-300/50 dark:border-red-800/50 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">Odayı Kapat</button>
           )}
@@ -364,15 +443,16 @@ export default function StudyRoomPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Ana Alan */}
         <div className="lg:col-span-2 space-y-5">
 
           {room.type === "VOICE" ? (
-            <div ref={dailyContainerRef} className="w-full bg-zinc-100 dark:bg-gray-900 border border-zinc-200 dark:border-gray-700 rounded-xl overflow-hidden" style={{ minHeight: "460px" }}>
+            <div ref={dailyContainerRef} className="w-full aspect-video max-h-[420px] bg-zinc-100 dark:bg-gray-900 border border-zinc-200 dark:border-gray-700 rounded-xl overflow-hidden relative">
               {!dailyLoaded && !dailyError && (
-                <div className="flex items-center justify-center h-full min-h-115">
+                <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                     <p className="text-zinc-500 dark:text-gray-400 text-sm">Sesli oda yükleniyor...</p>
@@ -380,7 +460,7 @@ export default function StudyRoomPage() {
                 </div>
               )}
               {dailyError && (
-                <div className="flex items-center justify-center h-full min-h-115">
+                <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <p className="text-red-500 dark:text-red-400 mb-3">{dailyError}</p>
                     <button onClick={loadDailyRoom} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm text-white transition-colors">Tekrar Dene</button>
@@ -579,9 +659,56 @@ export default function StudyRoomPage() {
               })
             )}
           </div>
-        </div>
+          </div>
 
       </div>
+      </div>
+
+      {/* Chat Panel */}
+      {chatOpen && (
+        <div className="fixed right-0 w-80 bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl z-40 flex flex-col" style={{ top: '65px', bottom: '0' }}>
+          <div className="shrink-0 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-white">💬 Oda Sohbeti</h3>
+            <button onClick={() => setChatOpen(false)} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
+              ✕
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+            {chatMessages.length === 0 && (
+              <p className="text-center text-zinc-400 dark:text-zinc-600 text-sm py-8">Henüz mesaj yok.<br/>İlk mesajı sen gönder! 💬</p>
+            )}
+            {chatMessages.map(m => {
+              const isSelf = m.senderId === user?.id;
+              return (
+                <div key={m.id} className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}>
+                  {!isSelf && <span className="text-xs text-zinc-500 dark:text-zinc-400 mb-0.5 font-medium">{m.sender}</span>}
+                  <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm ${
+                    isSelf
+                      ? 'bg-indigo-600 text-white rounded-br-md'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-bl-md'
+                  }`}>
+                    {m.text}
+                  </div>
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-600 mt-0.5">{new Date(m.time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              );
+            })}
+            <div ref={chatEndRef} />
+          </div>
+          <div className="shrink-0 px-4 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+            <div className="flex gap-2">
+              <input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendChat()}
+                placeholder="Mesaj yaz..."
+                className="flex-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:border-indigo-500"
+              />
+              <button onClick={sendChat} className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors">↑</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
