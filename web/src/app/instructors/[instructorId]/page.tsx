@@ -85,7 +85,7 @@ export default function InstructorProfilePage() {
   }
 
   if (loading || fetching) return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 px-6 py-10">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 px-6 py-10">
       <div className="max-w-2xl mx-auto space-y-5">
         <Skeleton className="h-5 w-24" />
         <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 flex gap-5 border border-zinc-100 dark:border-zinc-800">
@@ -102,7 +102,7 @@ export default function InstructorProfilePage() {
   );
 
   if (!instructor) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="w-full flex-1 flex items-center justify-center">
       <div className="text-center">
         <p className="text-zinc-500 mb-4">Eğitmen bulunamadı.</p>
         <Link href="/instructors" className="text-indigo-600 hover:underline text-sm">← Eğitmenlere dön</Link>
@@ -114,7 +114,7 @@ export default function InstructorProfilePage() {
   const isOwnProfile = user?.id === instructor.id;
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <main className="max-w-2xl mx-auto px-6 py-10 space-y-5">
         <Link href="/instructors" className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

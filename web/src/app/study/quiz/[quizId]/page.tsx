@@ -96,13 +96,13 @@ export default function QuizPage() {
   const totalCount = quiz?.questions.length ?? 0;
 
   if (loading || fetching) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="w-full flex-1 flex items-center justify-center">
       <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
     </div>
   );
 
   if (error) return (
-    <div className="min-h-screen flex items-center justify-center px-6">
+    <div className="w-full flex-1 flex items-center justify-center px-6">
       <div className="text-center">
         <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
         <Link href="/dashboard" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">← Çalışma alanına dön</Link>
@@ -120,7 +120,7 @@ export default function QuizPage() {
     const message = result.score >= 80 ? "Harika iş!" : result.score >= 50 ? "İyi gidiyor!" : "Biraz daha çalışalım!";
 
     return (
-      <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+      <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
         <main className="max-w-xl mx-auto px-6 py-14 space-y-6">
           {/* Ana sonuç kartı */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-8 text-center shadow-sm">
@@ -168,7 +168,7 @@ export default function QuizPage() {
 
   // ─── Quiz Ekranı ───
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <main className="max-w-3xl mx-auto px-6 py-10">
         <div className="flex items-start justify-between mb-8">
           <div>

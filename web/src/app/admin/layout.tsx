@@ -36,7 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (loading || !user || user.role !== "ADMIN") return null;
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex">
       <aside className="w-56 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col py-6 px-3">
         <div className="px-3 mb-6 flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-red-500 flex items-center justify-center text-white text-xs font-bold">A</div>

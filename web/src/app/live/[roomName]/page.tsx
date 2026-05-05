@@ -181,14 +181,14 @@ export default function LiveRoomPage() {
   }
 
   if (loading || fetchingToken) return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-zinc-950">
+    <div className="w-full flex-1 flex flex-col items-center justify-center gap-4 bg-zinc-950">
       <div className="w-10 h-10 border-4 border-indigo-800 border-t-indigo-400 rounded-full animate-spin" />
       <p className="text-sm text-zinc-400">Canlı derse bağlanılıyor...</p>
     </div>
   );
 
   if (error) return (
-    <div className="min-h-screen flex items-center justify-center px-6 bg-zinc-950">
+    <div className="w-full flex-1 flex items-center justify-center px-6 bg-zinc-950">
       <div className="text-center">
         <div className="text-5xl mb-4">⚠️</div>
         <p className="text-red-400 mb-4">{error}</p>

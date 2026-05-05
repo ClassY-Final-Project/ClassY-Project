@@ -21,6 +21,7 @@ export default function PageTransition({ children }: { children: React.ReactNode
 
   return (
     <div
+      className="flex-1 overflow-y-auto flex flex-col relative w-full h-full"
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? "translateY(0)" : "translateY(8px)",

@@ -127,7 +127,7 @@ export default function LearnPage() {
   const completedCount = completedIds.size;
 
   if (loading || fetching) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="w-full flex-1 flex items-center justify-center">
       <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
     </div>
   );
@@ -135,7 +135,7 @@ export default function LearnPage() {
   if (!course) return null;
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col">
+    <div className="w-full flex-1 bg-zinc-950 flex flex-col">
       {/* Üst bar */}
       <header className="flex items-center gap-4 px-6 py-3 bg-zinc-900 border-b border-zinc-800 shrink-0">
         <Link href={`/courses/${courseId}`}

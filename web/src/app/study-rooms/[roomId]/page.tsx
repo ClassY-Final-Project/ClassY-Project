@@ -292,7 +292,7 @@ export default function StudyRoomPage() {
 
   if (loading || fetching) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-gray-950 flex items-center justify-center">
+      <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -302,7 +302,7 @@ export default function StudyRoomPage() {
 
   if (!joined) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-gray-950 flex items-center justify-center px-4">
+      <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center px-4">
         <div className="bg-white dark:bg-gray-900 border border-zinc-200 dark:border-gray-700 rounded-2xl p-8 w-full max-w-md text-center">
           <div className="text-5xl mb-4">{room.type === "VOICE" ? "🎙️" : "🤫"}</div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-1">{room.name}</h1>
@@ -338,7 +338,7 @@ export default function StudyRoomPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-gray-950 text-zinc-900 dark:text-white">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 text-zinc-900 dark:text-white">
       {/* Header */}
       <div className="border-b border-zinc-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
