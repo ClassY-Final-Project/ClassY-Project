@@ -36,9 +36,11 @@ model User {
   roomParticipations RoomParticipant[]
   subscriptions      Subscription[]    @relation("StudentSubscriptions")
   subscribers        Subscription[]    @relation("InstructorSubscribers")
-  lessonProgress     LessonProgress[]
-  reviews            CourseReview[]
-  notifications      Notification[]
+  lessonProgress          LessonProgress[]
+  reviews                 CourseReview[]
+  notifications           Notification[]
+  studyRoomsCreated       StudyRoom[]            @relation("StudyRoomsCreated")
+  studyRoomParticipations StudyRoomParticipant[]
 }
 
 // --- 2. MARKETPLACE ---
@@ -279,7 +281,51 @@ model RoomParticipant {
   @@unique([roomId, userId])
 }
 
-// --- 5. SUBSCRIPTIONS ---
+// --- 5. STUDY ROOMS ---
+enum StudyRoomType {
+  VOICE
+  SILENT
+}
+
+model StudyRoom {
+  id             String        @id @default(uuid())
+  name           String
+  topic          String?
+  type           StudyRoomType @default(SILENT)
+  createdById    String
+  isActive       Boolean       @default(true)
+  maxCapacity    Int           @default(20)
+  dailyRoomName  String?       @unique
+  expiresAt      DateTime?
+  isPrivate      Boolean       @default(false)
+  inviteCode     String?       @unique
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  createdAt      DateTime      @default(now())
+
+  createdBy    User                   @relation("StudyRoomsCreated", fields: [createdById], references: [id])
+  participants StudyRoomParticipant[]
+
+  @@map("study_rooms")
+}
+
+model StudyRoomParticipant {
+  id       String    @id @default(uuid())
+  roomId   String
+  userId   String
+  studying String?
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
+  isActive Boolean   @default(true)
+
+  room StudyRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id])
+
+  @@unique([roomId, userId])
+  @@map("study_room_participants")
+}
+
+// --- 6. SUBSCRIPTIONS ---
 model Subscription {
   id           String   @id @default(uuid())
   studentId    String

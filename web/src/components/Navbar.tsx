@@ -84,11 +84,13 @@ export default function Navbar() {
           { href: "/instructor/earnings", label: "Kazançlarım" },
           { href: "/instructor/quiz", label: "Quiz" },
           { href: "/live", label: "🔴 Canlı" },
+          { href: "/study-rooms", label: "📚 Odalar" },
           { href: "/courses", label: "Katalog" },
         ]
       : [
           { href: "/dashboard", label: "Çalışma Alanım" },
           { href: "/study", label: "AI Asistan" },
+          { href: "/study-rooms", label: "📚 Odalar" },
           { href: "/live", label: "🔴 Canlı Ders" },
           { href: "/instructors", label: "Eğitmenler" },
           { href: "/courses", label: "Kurslar" },

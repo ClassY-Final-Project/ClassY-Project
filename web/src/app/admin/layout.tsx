@@ -10,6 +10,7 @@ const NAV = [
   { href: "/admin/users", label: "Kullanıcılar", icon: "👥" },
   { href: "/admin/courses", label: "Kurslar", icon: "🎬" },
   { href: "/admin/live-rooms", label: "Canlı Dersler", icon: "🔴" },
+  { href: "/admin/study-rooms", label: "Çalışma Odaları", icon: "📚" },
   { href: "/admin/notes", label: "Ders Notları", icon: "📄" },
   { href: "/admin/quizzes", label: "Quizler", icon: "📝" },
   { href: "/admin/reports", label: "Raporlar", icon: "📈" },
