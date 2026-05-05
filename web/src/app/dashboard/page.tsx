@@ -17,6 +17,22 @@ interface AssignedQuiz {
   instructor: { fullName: string | null; email: string };
 }
 
+interface SubjectStat {
+  subject: string;
+  studySeconds: number;
+  noteCount: number;
+  quizCount: number;
+  avgScore: number | null;
+}
+
+function formatDuration(secs: number): string {
+  if (secs < 60) return `${secs}s`;
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  if (h > 0) return `${h}s ${m}dk`;
+  return `${m}dk`;
+}
+
 export default function DashboardPage() {
   const { user, token, loading } = useAuth();
   const router = useRouter();
@@ -28,6 +44,10 @@ export default function DashboardPage() {
   const [assignedQuizzes, setAssignedQuizzes] = useState<AssignedQuiz[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [sideTab, setSideTab] = useState<"dersler" | "gelen">("dersler");
+  const [activeView, setActiveView] = useState<"dashboard" | "karne">("dashboard");
+  const [studyStats, setStudyStats] = useState<SubjectStat[]>([]);
+  const [totalStudySeconds, setTotalStudySeconds] = useState(0);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editSubject, setEditSubject] = useState("");
@@ -47,6 +67,27 @@ export default function DashboardPage() {
     loadDashboard();
     loadAssignedQuizzes();
   }, [token]);
+
+  async function loadStudyStats() {
+    if (!token) return;
+    setLoadingStats(true);
+    try {
+      const res = await fetch("/api/study-stats", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      setStudyStats(json.stats || []);
+      setTotalStudySeconds(json.totalStudySeconds || 0);
+    } catch {
+      // sessizce geç
+    } finally {
+      setLoadingStats(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activeView === "karne") loadStudyStats();
+  }, [activeView]); // eslint-disable-line
 
   async function loadAssignedQuizzes() {
     try {
@@ -160,27 +201,115 @@ export default function DashboardPage() {
         <>
           {/* ─── İstatistik Kartları ─── */}
           <div className="border-b border-zinc-100 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/40 backdrop-blur-sm">
-            <div className="max-w-5xl mx-auto px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { label: "Ders", value: dashboard.length, icon: "📚", color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/40" },
-                { label: "Not", value: totalNotes, icon: "📝", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/40" },
-                { label: "Quiz", value: totalQuizzes, icon: "📋", color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/40" },
-                { label: "Tamamlanan", value: completedQuizzes, icon: "✅", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
-              ].map((stat) => (
-                <div key={stat.label} className="flex items-center gap-3 bg-white dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800 rounded-xl px-4 py-3">
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0 ${stat.bg}`}>
-                    {stat.icon}
+            <div className="max-w-5xl mx-auto px-6 py-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                {[
+                  { label: "Ders", value: dashboard.length, icon: "📚", color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/40" },
+                  { label: "Not", value: totalNotes, icon: "📝", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/40" },
+                  { label: "Quiz", value: totalQuizzes, icon: "📋", color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/40" },
+                  { label: "Tamamlanan", value: completedQuizzes, icon: "✅", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
+                ].map((stat) => (
+                  <div key={stat.label} className="flex items-center gap-3 bg-white dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800 rounded-xl px-4 py-3">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0 ${stat.bg}`}>
+                      {stat.icon}
+                    </div>
+                    <div>
+                      <p className={`text-xl font-bold leading-none ${stat.color}`}>{stat.value}</p>
+                      <p className="text-xs text-zinc-400 mt-0.5">{stat.label}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className={`text-xl font-bold leading-none ${stat.color}`}>{stat.value}</p>
-                    <p className="text-xs text-zinc-400 mt-0.5">{stat.label}</p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+              <div className="flex gap-2">
+                {([["dashboard", "📂 Çalışmalarım"], ["karne", "📊 Karne"]] as const).map(([v, label]) => (
+                  <button key={v} onClick={() => setActiveView(v)}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeView === v ? "bg-indigo-600 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="flex h-[calc(100vh-57px-72px)]">
+          {/* ─── Karne Görünümü ─── */}
+          {activeView === "karne" && (
+            <div className="max-w-4xl mx-auto px-6 py-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Çalışma Karnem</h2>
+                  <p className="text-sm text-zinc-400 mt-0.5">
+                    Toplam çalışma: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{formatDuration(totalStudySeconds)}</span>
+                  </p>
+                </div>
+                <button onClick={loadStudyStats} className="text-sm text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
+                  ↻ Yenile
+                </button>
+              </div>
+
+              {loadingStats ? (
+                <div className="text-center py-16 text-zinc-400 text-sm">Yükleniyor...</div>
+              ) : studyStats.length === 0 ? (
+                <div className="text-center py-16">
+                  <p className="text-4xl mb-3">📊</p>
+                  <p className="text-zinc-500 text-sm">Henüz çalışma istatistiği yok.</p>
+                  <p className="text-zinc-400 text-xs mt-1">Çalışma odalarına katılın, not ve quiz oluşturun.</p>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {studyStats.map((stat) => {
+                    const pct = totalStudySeconds > 0 ? Math.round((stat.studySeconds / totalStudySeconds) * 100) : 0;
+                    return (
+                      <div key={stat.subject} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm shrink-0">
+                              {stat.subject.charAt(0).toUpperCase()}
+                            </div>
+                            <p className="font-semibold text-zinc-900 dark:text-white text-sm">{stat.subject}</p>
+                          </div>
+                          {stat.avgScore !== null && (
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stat.avgScore >= 70 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : stat.avgScore >= 50 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+                              %{stat.avgScore}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Çalışma süresi progress bar */}
+                        <div className="mb-3">
+                          <div className="flex justify-between text-xs text-zinc-400 mb-1">
+                            <span>⏱ {formatDuration(stat.studySeconds)}</span>
+                            <span>{pct}%</span>
+                          </div>
+                          <div className="h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-4 text-xs text-zinc-500">
+                          <span className="flex items-center gap-1">
+                            <span className="text-blue-500">📝</span>
+                            {stat.noteCount} not
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="text-violet-500">📋</span>
+                            {stat.quizCount} quiz
+                          </span>
+                          {stat.avgScore !== null && (
+                            <span className="flex items-center gap-1">
+                              <span className="text-emerald-500">🎯</span>
+                              Ort. %{stat.avgScore}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeView === "dashboard" && <div className="flex h-[calc(100vh-57px-120px)]">
             {/* ─── Sol Panel ─── */}
             <aside className="w-60 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-sm overflow-y-auto">
               <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
@@ -412,7 +541,7 @@ export default function DashboardPage() {
                 </div>
               )}
             </main>
-          </div>
+          </div>}
         </>
       )}
     </div>
