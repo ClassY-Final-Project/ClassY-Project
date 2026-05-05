@@ -48,7 +48,6 @@ function getParticipantSeconds(joinedAt: string) {
   return Math.floor((Date.now() - new Date(joinedAt).getTime()) / 1000);
 }
 
-// Katılımcının senkron Pomodoro'ya göre çalışma/mola süresi
 function calcParticipantStats(
   joinedAt: string,
   scheduledStart: string | null,
@@ -77,7 +76,6 @@ function calcParticipantStats(
   return { studySecs, breakSecs };
 }
 
-// Genel oda için senkronize Pomodoro hesabı
 function getSyncedTimer(scheduledStart: string, workMin: number, restMin: number) {
   const elapsed = Math.floor((Date.now() - new Date(scheduledStart).getTime()) / 1000);
   if (elapsed < 0) return { isBreak: false, remaining: workMin * 60, sessionCount: 0 };
@@ -104,10 +102,8 @@ export default function StudyRoomPage() {
   const [joining, setJoining] = useState(false);
   const [studyingText, setStudyingText] = useState("");
 
-  // Saat
   const [now, setNow] = useState(new Date());
 
-  // Özel oda — kişisel timer
   const [presetIdx, setPresetIdx] = useState(0);
   const [customWork, setCustomWork] = useState(25);
   const [customRest, setCustomRest] = useState(5);
@@ -120,12 +116,10 @@ export default function StudyRoomPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const totalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Daily.co
   const dailyContainerRef = useRef<HTMLDivElement>(null);
   const callFrameRef = useRef<any>(null);
   const [dailyLoaded, setDailyLoaded] = useState(false);
   const [dailyError, setDailyError] = useState("");
-
 
   const isOwner = room && user && room.createdById === user.id;
   const isAdmin = user?.role === "ADMIN";
@@ -135,7 +129,6 @@ export default function StudyRoomPage() {
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
-    // Eğitmenler odaları görebilir ve katılabilir
   }, [user, loading, router]);
 
   useEffect(() => {
@@ -178,7 +171,6 @@ export default function StudyRoomPage() {
     };
   }, [joined, token, roomId]);
 
-  // Kişisel Pomodoro (sadece özel odalar)
   useEffect(() => {
     if (isScheduled) return;
     if (timerRunning) {
@@ -294,14 +286,13 @@ export default function StudyRoomPage() {
   const clockStr = now.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const dateStr = now.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
 
-  // Senkron timer değerleri
   const syncedTimer = isScheduled && room?.scheduledStart
     ? getSyncedTimer(room.scheduledStart, 25, 5)
     : null;
 
   if (loading || fetching) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -311,34 +302,34 @@ export default function StudyRoomPage() {
 
   if (!joined) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
-        <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 w-full max-w-md text-center">
+      <div className="min-h-screen bg-zinc-50 dark:bg-gray-950 flex items-center justify-center px-4">
+        <div className="bg-white dark:bg-gray-900 border border-zinc-200 dark:border-gray-700 rounded-2xl p-8 w-full max-w-md text-center">
           <div className="text-5xl mb-4">{room.type === "VOICE" ? "🎙️" : "🤫"}</div>
-          <h1 className="text-2xl font-bold text-white mb-1">{room.name}</h1>
-          {room.topic && <p className="text-gray-400 mb-2">{room.topic}</p>}
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-1">{room.name}</h1>
+          {room.topic && <p className="text-zinc-500 dark:text-gray-400 mb-2">{room.topic}</p>}
           {room.scheduledStart && room.scheduledEnd && (
-            <p className="text-yellow-400/80 text-sm mb-3">
+            <p className="text-yellow-600 dark:text-yellow-400/80 text-sm mb-3">
               🕐 {new Date(room.scheduledStart).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })} – {new Date(room.scheduledEnd).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
             </p>
           )}
-          <div className="flex items-center justify-center gap-3 mb-6 text-sm text-gray-500">
-            <span className={`px-2 py-0.5 rounded-full text-xs ${room.type === "VOICE" ? "bg-blue-900/30 text-blue-400" : "bg-gray-800 text-gray-400"}`}>
+          <div className="flex items-center justify-center gap-3 mb-6 text-sm text-zinc-500 dark:text-gray-500">
+            <span className={`px-2 py-0.5 rounded-full text-xs ${room.type === "VOICE" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" : "bg-zinc-100 dark:bg-gray-800 text-zinc-600 dark:text-gray-400"}`}>
               {room.type === "VOICE" ? "🎙️ Sesli" : "🤫 Sessiz"}
             </span>
             <span>{room._count.participants} / {room.maxCapacity} kişi</span>
-            {room.isPrivate && <span className="text-xs bg-purple-900/30 text-purple-400 px-2 py-0.5 rounded-full">🔐 Özel</span>}
+            {room.isPrivate && <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">🔐 Özel</span>}
           </div>
           <input
             value={studyingText}
             onChange={e => setStudyingText(e.target.value)}
             placeholder="Ne çalışıyorsunuz? (isteğe bağlı)"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 mb-4"
+            className="w-full bg-zinc-100 dark:bg-gray-800 border border-zinc-200 dark:border-gray-700 rounded-lg px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-gray-500 focus:outline-none focus:border-purple-500 mb-4"
           />
           <button onClick={joinRoom} disabled={joining || room._count.participants >= room.maxCapacity}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-medium transition-colors disabled:opacity-50">
             {joining ? "Katılınıyor..." : room._count.participants >= room.maxCapacity ? "Oda Dolu" : "Odaya Katıl"}
           </button>
-          <button onClick={() => router.push("/study-rooms")} className="mt-3 w-full text-gray-500 hover:text-gray-300 py-2 text-sm transition-colors">
+          <button onClick={() => router.push("/study-rooms")} className="mt-3 w-full text-zinc-400 dark:text-gray-500 hover:text-zinc-700 dark:hover:text-gray-300 py-2 text-sm transition-colors">
             ← Geri Dön
           </button>
         </div>
@@ -347,29 +338,29 @@ export default function StudyRoomPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-zinc-50 dark:bg-gray-950 text-zinc-900 dark:text-white">
       {/* Header */}
-      <div className="border-b border-gray-800 px-6 py-3 flex items-center justify-between">
+      <div className="border-b border-zinc-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-xl">{room.type === "VOICE" ? "🎙️" : "🤫"}</span>
           <div>
-            <h1 className="text-base font-bold leading-tight">{room.name}</h1>
-            {room.topic && <p className="text-gray-500 text-xs">{room.topic}</p>}
+            <h1 className="text-base font-bold leading-tight text-zinc-900 dark:text-white">{room.name}</h1>
+            {room.topic && <p className="text-zinc-500 dark:text-gray-500 text-xs">{room.topic}</p>}
           </div>
-          <span className="text-xs bg-green-900/30 text-green-400 border border-green-800/50 px-2 py-0.5 rounded-full animate-pulse">
+          <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300/50 dark:border-green-800/50 px-2 py-0.5 rounded-full animate-pulse">
             {room._count.participants} aktif
           </span>
           {room.isPrivate && (
-            <button onClick={copyInviteLink} className="text-xs bg-purple-900/20 text-purple-400 border border-purple-800/30 px-2 py-0.5 rounded-full hover:bg-purple-900/40 transition-colors">
+            <button onClick={copyInviteLink} className="text-xs bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-300/40 dark:border-purple-800/30 px-2 py-0.5 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/40 transition-colors">
               🔗 Davet Linki
             </button>
           )}
         </div>
         <div className="flex gap-2">
           {(isOwner || isAdmin) && (
-            <button onClick={closeRoom} className="px-3 py-1.5 text-xs text-red-400 border border-red-800/50 rounded-lg hover:bg-red-900/20 transition-colors">Odayı Kapat</button>
+            <button onClick={closeRoom} className="px-3 py-1.5 text-xs text-red-500 dark:text-red-400 border border-red-300/50 dark:border-red-800/50 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">Odayı Kapat</button>
           )}
-          <button onClick={leaveRoom} className="px-4 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">Ayrıl</button>
+          <button onClick={leaveRoom} className="px-4 py-1.5 text-xs bg-zinc-100 dark:bg-gray-800 hover:bg-zinc-200 dark:hover:bg-gray-700 rounded-lg transition-colors text-zinc-700 dark:text-white">Ayrıl</button>
         </div>
       </div>
 
@@ -379,20 +370,20 @@ export default function StudyRoomPage() {
         <div className="lg:col-span-2 space-y-5">
 
           {room.type === "VOICE" ? (
-            <div ref={dailyContainerRef} className="w-full bg-gray-900 border border-gray-700 rounded-xl overflow-hidden" style={{ minHeight: "460px" }}>
+            <div ref={dailyContainerRef} className="w-full bg-zinc-100 dark:bg-gray-900 border border-zinc-200 dark:border-gray-700 rounded-xl overflow-hidden" style={{ minHeight: "460px" }}>
               {!dailyLoaded && !dailyError && (
-                <div className="flex items-center justify-center h-full min-h-[460px]">
+                <div className="flex items-center justify-center h-full min-h-115">
                   <div className="text-center">
                     <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                    <p className="text-gray-400 text-sm">Sesli oda yükleniyor...</p>
+                    <p className="text-zinc-500 dark:text-gray-400 text-sm">Sesli oda yükleniyor...</p>
                   </div>
                 </div>
               )}
               {dailyError && (
-                <div className="flex items-center justify-center h-full min-h-[460px]">
+                <div className="flex items-center justify-center h-full min-h-115">
                   <div className="text-center">
-                    <p className="text-red-400 mb-3">{dailyError}</p>
-                    <button onClick={loadDailyRoom} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors">Tekrar Dene</button>
+                    <p className="text-red-500 dark:text-red-400 mb-3">{dailyError}</p>
+                    <button onClick={loadDailyRoom} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm text-white transition-colors">Tekrar Dene</button>
                   </div>
                 </div>
               )}
@@ -400,59 +391,58 @@ export default function StudyRoomPage() {
           ) : (
             <>
               {/* Duvar Saati */}
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
-                <p className="text-6xl font-mono font-bold text-white tracking-wider tabular-nums">{clockStr}</p>
-                <p className="text-gray-500 text-sm mt-2 capitalize">{dateStr}</p>
+              <div className="bg-white dark:bg-gray-900 border border-zinc-200 dark:border-gray-800 rounded-xl p-6 text-center">
+                <p className="text-6xl font-mono font-bold text-zinc-900 dark:text-white tracking-wider tabular-nums">{clockStr}</p>
+                <p className="text-zinc-400 dark:text-gray-500 text-sm mt-2 capitalize">{dateStr}</p>
                 {room.scheduledStart && room.scheduledEnd && (
-                  <p className="text-yellow-400/70 text-xs mt-1">
+                  <p className="text-yellow-600 dark:text-yellow-400/70 text-xs mt-1">
                     Oturum: {new Date(room.scheduledStart).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })} – {new Date(room.scheduledEnd).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 )}
                 {!isScheduled && (
                   <div className="flex items-center justify-center gap-8 mt-5">
                     <div>
-                      <p className="text-2xl font-bold text-purple-400">{sessionCount}</p>
-                      <p className="text-gray-600 text-xs">tamamlanan seans</p>
+                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{sessionCount}</p>
+                      <p className="text-zinc-400 dark:text-gray-600 text-xs">tamamlanan seans</p>
                     </div>
-                    <div className="w-px h-8 bg-gray-800" />
+                    <div className="w-px h-8 bg-zinc-200 dark:bg-gray-800" />
                     <div>
-                      <p className="text-2xl font-bold text-green-400">{formatDuration(totalStudySeconds)}</p>
-                      <p className="text-gray-600 text-xs">toplam çalışma</p>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatDuration(totalStudySeconds)}</p>
+                      <p className="text-zinc-400 dark:text-gray-600 text-xs">toplam çalışma</p>
                     </div>
                   </div>
                 )}
                 {isScheduled && syncedTimer && (
                   <div className="flex items-center justify-center gap-8 mt-5">
                     <div>
-                      <p className="text-2xl font-bold text-purple-400">{syncedTimer.sessionCount}</p>
-                      <p className="text-gray-600 text-xs">tamamlanan seans</p>
+                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{syncedTimer.sessionCount}</p>
+                      <p className="text-zinc-400 dark:text-gray-600 text-xs">tamamlanan seans</p>
                     </div>
-                    <div className="w-px h-8 bg-gray-800" />
+                    <div className="w-px h-8 bg-zinc-200 dark:bg-gray-800" />
                     <div>
-                      <p className={`text-2xl font-bold ${syncedTimer.isBreak ? "text-green-400" : "text-purple-400"}`}>
+                      <p className={`text-2xl font-bold ${syncedTimer.isBreak ? "text-green-600 dark:text-green-400" : "text-purple-600 dark:text-purple-400"}`}>
                         {syncedTimer.isBreak ? "Mola" : "Odak"}
                       </p>
-                      <p className="text-gray-600 text-xs">şu an</p>
+                      <p className="text-zinc-400 dark:text-gray-600 text-xs">şu an</p>
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Pomodoro */}
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+              <div className="bg-white dark:bg-gray-900 border border-zinc-200 dark:border-gray-800 rounded-xl p-6">
                 {isScheduled && syncedTimer ? (
-                  /* Senkronize timer — genel oda */
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <p className="text-sm font-semibold text-white">⏱ Ortak Pomodoro (25/5)</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${syncedTimer.isBreak ? "bg-green-900/30 text-green-400" : "bg-purple-900/30 text-purple-400"}`}>
+                      <p className="text-sm font-semibold text-zinc-900 dark:text-white">⏱ Ortak Pomodoro (25/5)</p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${syncedTimer.isBreak ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" : "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"}`}>
                         {syncedTimer.isBreak ? "☕ Mola" : "📖 Odak"}
                       </span>
                     </div>
                     <div className="flex items-center gap-6">
                       <div className="relative w-32 h-32 shrink-0">
                         <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                          <circle cx="50" cy="50" r="44" fill="none" stroke="#1f2937" strokeWidth="7" />
+                          <circle cx="50" cy="50" r="44" fill="none" stroke="#e4e4e7" className="dark:stroke-[#1f2937]" strokeWidth="7" />
                           <circle cx="50" cy="50" r="44" fill="none"
                             stroke={syncedTimer.isBreak ? "#10b981" : "#8b5cf6"}
                             strokeWidth="7" strokeLinecap="round"
@@ -462,29 +452,28 @@ export default function StudyRoomPage() {
                           />
                         </svg>
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-2xl font-mono font-bold text-white tabular-nums">{formatTime(syncedTimer.remaining)}</span>
-                          <span className={`text-xs ${syncedTimer.isBreak ? "text-green-400" : "text-purple-400"}`}>kaldı</span>
+                          <span className="text-2xl font-mono font-bold text-zinc-900 dark:text-white tabular-nums">{formatTime(syncedTimer.remaining)}</span>
+                          <span className={`text-xs ${syncedTimer.isBreak ? "text-green-600 dark:text-green-400" : "text-purple-600 dark:text-purple-400"}`}>kaldı</span>
                         </div>
                       </div>
                       <div>
-                        <p className="text-gray-400 text-sm">Herkesle aynı anda çalışıyorsunuz.</p>
-                        <p className="text-gray-600 text-xs mt-1">Timer odadaki herkesle senkronize.</p>
+                        <p className="text-zinc-500 dark:text-gray-400 text-sm">Herkesle aynı anda çalışıyorsunuz.</p>
+                        <p className="text-zinc-400 dark:text-gray-600 text-xs mt-1">Timer odadaki herkesle senkronize.</p>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  /* Kişisel timer — özel oda */
                   <>
                     <div className="flex gap-2 mb-5">
                       {PRESETS.map((p, i) => (
                         <button key={i} onClick={() => applyPreset(i)}
-                          className={`flex-1 py-2 rounded-lg text-sm transition-colors ${!useCustom && presetIdx === i ? "bg-purple-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
+                          className={`flex-1 py-2 rounded-lg text-sm transition-colors ${!useCustom && presetIdx === i ? "bg-purple-600 text-white" : "bg-zinc-100 dark:bg-gray-800 text-zinc-600 dark:text-gray-400 hover:bg-zinc-200 dark:hover:bg-gray-700"}`}>
                           <span className="font-medium">{p.label}</span>
                           <span className="block text-xs opacity-60">{p.desc}</span>
                         </button>
                       ))}
                       <button onClick={() => { setUseCustom(true); setTimerRunning(false); setIsBreak(false); setTimerSeconds(customWork * 60); }}
-                        className={`flex-1 py-2 rounded-lg text-sm transition-colors ${useCustom ? "bg-purple-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
+                        className={`flex-1 py-2 rounded-lg text-sm transition-colors ${useCustom ? "bg-purple-600 text-white" : "bg-zinc-100 dark:bg-gray-800 text-zinc-600 dark:text-gray-400 hover:bg-zinc-200 dark:hover:bg-gray-700"}`}>
                         <span className="font-medium">Özel</span>
                         <span className="block text-xs opacity-60">Kendin ayarla</span>
                       </button>
@@ -492,23 +481,23 @@ export default function StudyRoomPage() {
                     {useCustom && (
                       <div className="flex gap-3 mb-5">
                         <div className="flex-1">
-                          <label className="text-xs text-gray-500 mb-1 block">Çalışma (dk)</label>
+                          <label className="text-xs text-zinc-500 dark:text-gray-500 mb-1 block">Çalışma (dk)</label>
                           <input type="number" min={1} max={180} value={customWork}
                             onChange={e => { const v = parseInt(e.target.value) || 1; setCustomWork(v); if (!timerRunning && !isBreak) setTimerSeconds(v * 60); }}
-                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500 text-sm" />
+                            className="w-full bg-zinc-100 dark:bg-gray-800 border border-zinc-200 dark:border-gray-700 rounded-lg px-3 py-2 text-zinc-900 dark:text-white focus:outline-none focus:border-purple-500 text-sm" />
                         </div>
                         <div className="flex-1">
-                          <label className="text-xs text-gray-500 mb-1 block">Mola (dk)</label>
+                          <label className="text-xs text-zinc-500 dark:text-gray-500 mb-1 block">Mola (dk)</label>
                           <input type="number" min={1} max={60} value={customRest}
                             onChange={e => setCustomRest(parseInt(e.target.value) || 1)}
-                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500 text-sm" />
+                            className="w-full bg-zinc-100 dark:bg-gray-800 border border-zinc-200 dark:border-gray-700 rounded-lg px-3 py-2 text-zinc-900 dark:text-white focus:outline-none focus:border-purple-500 text-sm" />
                         </div>
                       </div>
                     )}
                     <div className="flex items-center gap-8">
                       <div className="relative w-36 h-36 shrink-0">
                         <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                          <circle cx="50" cy="50" r="44" fill="none" stroke="#1f2937" strokeWidth="7" />
+                          <circle cx="50" cy="50" r="44" fill="none" stroke="#e4e4e7" className="dark:stroke-[#1f2937]" strokeWidth="7" />
                           <circle cx="50" cy="50" r="44" fill="none"
                             stroke={isBreak ? "#10b981" : "#8b5cf6"}
                             strokeWidth="7" strokeLinecap="round"
@@ -518,19 +507,19 @@ export default function StudyRoomPage() {
                           />
                         </svg>
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-2xl font-mono font-bold text-white tabular-nums">{formatTime(timerSeconds)}</span>
-                          <span className={`text-xs mt-0.5 ${isBreak ? "text-green-400" : "text-purple-400"}`}>{isBreak ? "Mola" : "Odak"}</span>
+                          <span className="text-2xl font-mono font-bold text-zinc-900 dark:text-white tabular-nums">{formatTime(timerSeconds)}</span>
+                          <span className={`text-xs mt-0.5 ${isBreak ? "text-green-600 dark:text-green-400" : "text-purple-600 dark:text-purple-400"}`}>{isBreak ? "Mola" : "Odak"}</span>
                         </div>
                       </div>
                       <div className="flex-1">
-                        <p className="text-gray-400 text-sm mb-3">{isBreak ? "☕ Molanı iyi kullan." : `📖 ${workMin} dk çalış, ${restMin} dk mola.`}</p>
+                        <p className="text-zinc-500 dark:text-gray-400 text-sm mb-3">{isBreak ? "☕ Molanı iyi kullan." : `📖 ${workMin} dk çalış, ${restMin} dk mola.`}</p>
                         <div className="flex gap-2">
                           <button onClick={() => setTimerRunning(r => !r)}
-                            className={`flex-1 py-2.5 rounded-lg font-medium text-sm transition-colors ${timerRunning ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-purple-600 hover:bg-purple-700 text-white"}`}>
+                            className={`flex-1 py-2.5 rounded-lg font-medium text-sm transition-colors ${timerRunning ? "bg-zinc-200 dark:bg-gray-700 hover:bg-zinc-300 dark:hover:bg-gray-600 text-zinc-800 dark:text-white" : "bg-purple-600 hover:bg-purple-700 text-white"}`}>
                             {timerRunning ? "⏸ Durdur" : "▶ Başlat"}
                           </button>
                           <button onClick={() => { setTimerRunning(false); setIsBreak(false); setTimerSeconds(workMin * 60); }}
-                            className="px-4 py-2.5 rounded-lg border border-gray-700 text-gray-400 hover:bg-gray-800 text-sm transition-colors">↺</button>
+                            className="px-4 py-2.5 rounded-lg border border-zinc-200 dark:border-gray-700 text-zinc-500 dark:text-gray-400 hover:bg-zinc-100 dark:hover:bg-gray-800 text-sm transition-colors">↺</button>
                         </div>
                       </div>
                     </div>
@@ -542,13 +531,13 @@ export default function StudyRoomPage() {
         </div>
 
         {/* Sağ: Katılımcılar + süreleri */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+        <div className="bg-white dark:bg-gray-900 border border-zinc-200 dark:border-gray-800 rounded-xl p-5">
+          <h2 className="text-xs font-semibold text-zinc-500 dark:text-gray-500 uppercase tracking-wider mb-4">
             Şu an çalışıyor ({room._count.participants})
           </h2>
-          <div className="space-y-3 max-h-[560px] overflow-y-auto">
+          <div className="space-y-3 max-h-140 overflow-y-auto">
             {room.participants.length === 0 ? (
-              <p className="text-gray-600 text-sm text-center py-6">Henüz kimse yok</p>
+              <p className="text-zinc-400 dark:text-gray-600 text-sm text-center py-6">Henüz kimse yok</p>
             ) : (
               room.participants.map(p => {
                 const isSelf = p.user.id === user?.id;
@@ -559,29 +548,28 @@ export default function StudyRoomPage() {
                 );
                 const totalSecs = getParticipantSeconds(p.joinedAt);
                 return (
-                  <div key={p.id} className={`p-2.5 rounded-lg ${isSelf ? "bg-purple-900/10 border border-purple-800/20" : ""}`}>
+                  <div key={p.id} className={`p-2.5 rounded-lg ${isSelf ? "bg-purple-50 dark:bg-purple-900/10 border border-purple-200/50 dark:border-purple-800/20" : ""}`}>
                     <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 ${isSelf ? "bg-purple-600" : "bg-gray-700"}`}>
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 ${isSelf ? "bg-purple-600" : "bg-zinc-300 dark:bg-gray-700"}`}>
                         {(p.user.fullName || "?")[0].toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-white text-sm font-medium truncate">
+                        <p className="text-zinc-900 dark:text-white text-sm font-medium truncate">
                           {p.user.fullName || "Anonim"}
-                          {isSelf && <span className="text-purple-400 text-xs ml-1">(sen)</span>}
+                          {isSelf && <span className="text-purple-600 dark:text-purple-400 text-xs ml-1">(sen)</span>}
                         </p>
-                        <p className="text-gray-600 text-xs truncate">
+                        <p className="text-zinc-400 dark:text-gray-600 text-xs truncate">
                           {p.studying ? `📚 ${p.studying}` : "Çalışıyor..."}
                         </p>
                       </div>
                       <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shrink-0" />
                     </div>
-                    {/* Çalışma / Mola süreleri */}
                     <div className="flex gap-2 mt-2 ml-12">
-                      <span className="text-xs bg-purple-900/20 text-purple-300 px-2 py-0.5 rounded-full">
+                      <span className="text-xs bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 px-2 py-0.5 rounded-full">
                         📖 {formatDuration(room.scheduledStart ? studySecs : totalSecs)}
                       </span>
                       {room.scheduledStart && breakSecs > 0 && (
-                        <span className="text-xs bg-green-900/20 text-green-400 px-2 py-0.5 rounded-full">
+                        <span className="text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">
                           ☕ {formatDuration(breakSecs)}
                         </span>
                       )}
