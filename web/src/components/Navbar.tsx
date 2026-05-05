@@ -151,7 +151,7 @@ export default function Navbar() {
                   )}
                 </button>
                 {notifOpen && (
-                  <div className="absolute right-0 top-14 w-80 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border border-zinc-200/50 dark:border-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden">
+                  <div className="absolute right-0 top-14 w-80 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden">
                     <div className="px-5 py-4 border-b border-zinc-100 dark:border-white/5">
                       <p className="text-sm font-bold text-zinc-900 dark:text-white">Bildirimler</p>
                     </div>
