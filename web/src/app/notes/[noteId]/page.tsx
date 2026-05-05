@@ -59,7 +59,7 @@ export default function NoteDetailPage() {
   }
 
   if (loading || fetching) return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 px-6 py-10">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 px-6 py-10">
       <div className="max-w-3xl mx-auto space-y-5">
         <Skeleton className="h-5 w-24" />
         <Skeleton className="h-8 w-64" />
@@ -70,7 +70,7 @@ export default function NoteDetailPage() {
   );
 
   if (error || !note) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="w-full flex-1 flex items-center justify-center">
       <div className="text-center">
         <p className="text-zinc-500 dark:text-zinc-400 mb-4">{error || "Not bulunamadı."}</p>
         <Link href="/dashboard" className="text-indigo-600 dark:text-indigo-400 text-sm hover:underline">← Geri dön</Link>
@@ -79,7 +79,7 @@ export default function NoteDetailPage() {
   );
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <main className="max-w-3xl mx-auto px-6 py-10 space-y-6">
         {/* Geri */}
         <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">

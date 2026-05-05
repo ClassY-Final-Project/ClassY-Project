@@ -33,7 +33,7 @@ export default function CoursesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <main className="max-w-5xl mx-auto px-6 py-10">
         {/* Başlık */}
         <div className="mb-8">

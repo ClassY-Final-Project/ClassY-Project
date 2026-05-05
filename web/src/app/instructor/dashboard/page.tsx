@@ -67,7 +67,7 @@ export default function InstructorDashboardPage() {
   const initials = (user?.fullName || user?.email || "?").split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <main className="max-w-5xl mx-auto px-6 py-10 space-y-8">
 
         {/* Hoşgeldin */}

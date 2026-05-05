@@ -105,7 +105,7 @@ export default function StudyRoomsPage() {
 
   if (loading || fetching) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-gray-950 flex items-center justify-center">
+      <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -114,7 +114,7 @@ export default function StudyRoomsPage() {
   const topRoom = rooms[0];
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-gray-950 text-zinc-900 dark:text-white">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 text-zinc-900 dark:text-white">
       <div className="max-w-5xl mx-auto px-4 py-10">
 
         {/* Başlık */}

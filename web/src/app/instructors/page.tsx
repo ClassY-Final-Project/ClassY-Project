@@ -97,7 +97,7 @@ export default function InstructorsPage() {
   }
 
   if (loading || fetching) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="w-full flex-1 flex items-center justify-center">
       <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
     </div>
   );
@@ -107,7 +107,7 @@ export default function InstructorsPage() {
     : instructors;
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <main className="max-w-4xl mx-auto px-6 py-10">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Eğitmenler</h1>

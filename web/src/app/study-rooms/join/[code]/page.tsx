@@ -55,7 +55,7 @@ export default function JoinByInvitePage() {
 
   if (loading || fetching) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-gray-950 flex items-center justify-center">
+      <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -63,7 +63,7 @@ export default function JoinByInvitePage() {
 
   if (!room) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-gray-950 flex items-center justify-center px-4">
+      <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center px-4">
         <div className="text-center">
           <p className="text-5xl mb-4">🔒</p>
           <p className="text-zinc-900 dark:text-white text-xl font-bold mb-2">Geçersiz davet linki</p>
@@ -77,7 +77,7 @@ export default function JoinByInvitePage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-gray-950 flex items-center justify-center px-4">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center px-4">
       <div className="bg-white dark:bg-gray-900 border border-zinc-200 dark:border-gray-700 rounded-2xl p-8 w-full max-w-md text-center">
         <div className="w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700/40 flex items-center justify-center text-2xl mx-auto mb-4">
           🔐

@@ -67,7 +67,7 @@ export default function PaymentPage() {
   }
 
   if (loading || fetching) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="w-full flex-1 flex items-center justify-center">
       <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
     </div>
   );
@@ -83,7 +83,7 @@ export default function PaymentPage() {
 
   if (isFree) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="w-full flex-1 flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-zinc-500">Bu kurs ücretsiz, ödeme gerekmiyor.</p>
           <Link href={`/courses/${courseId}`} className="text-indigo-600 hover:underline text-sm">Kursa dön</Link>
@@ -93,7 +93,7 @@ export default function PaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <main className="max-w-lg mx-auto px-6 py-12">
         <Link href={`/courses/${courseId}`}
           className="inline-flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors mb-8">

@@ -21,7 +21,7 @@ export default function LandingPage() {
   }, []);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+    <div className="w-full flex-1 flex items-center justify-center bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
     </div>
   );
@@ -92,7 +92,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-zinc-50 dark:bg-[#09090b] selection:bg-indigo-500/30 text-zinc-900 dark:text-zinc-50">
+    <div className="w-full flex-1 overflow-x-hidden bg-zinc-50 dark:bg-[#09090b] selection:bg-indigo-500/30 text-zinc-900 dark:text-zinc-50">
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-24 lg:pt-40 lg:pb-32 px-6 flex flex-col items-center justify-center min-h-[90vh]">

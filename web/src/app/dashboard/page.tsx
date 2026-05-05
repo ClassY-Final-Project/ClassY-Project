@@ -230,8 +230,8 @@ export default function DashboardPage() {
   const activeSubject = subjects.find((s) => s.id === openSubjectId) || null;
 
   return (
-    <div className="bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
-      <div className="flex h-[calc(100vh-57px)]">
+    <div className="flex flex-1 w-full bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+      <div className="flex flex-1 w-full">
         {/* 1. KOLON */}
         <aside className="w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="p-4">

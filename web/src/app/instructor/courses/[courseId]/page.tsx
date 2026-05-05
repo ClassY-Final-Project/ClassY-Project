@@ -361,7 +361,7 @@ export default function CourseEditorPage() {
   }
 
   if (loading || fetching) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="w-full flex-1 flex items-center justify-center">
       <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
     </div>
   );
@@ -369,7 +369,7 @@ export default function CourseEditorPage() {
   if (!course) return null;
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       {toast && (
         <div className={`fixed top-20 right-5 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${
           toast.type === "ok" ? "bg-green-500 text-white" : "bg-red-500 text-white"

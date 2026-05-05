@@ -152,7 +152,7 @@ export default function InstructorQuizPage() {
   if (loading) return null;
 
   if (done) return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center px-6">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 flex items-center justify-center px-6">
       <div className="text-center max-w-sm">
         <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-950/40 flex items-center justify-center text-3xl mx-auto mb-4">✅</div>
         <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">Quiz gönderildi!</h2>
@@ -172,7 +172,7 @@ export default function InstructorQuizPage() {
   );
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <main className="max-w-3xl mx-auto px-6 py-10 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Quiz Oluştur & Ata</h1>

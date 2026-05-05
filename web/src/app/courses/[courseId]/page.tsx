@@ -140,13 +140,13 @@ export default function CourseDetailPage() {
   );
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="w-full flex-1 flex items-center justify-center">
       <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
     </div>
   );
 
   if (notFound || !course) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="w-full flex-1 flex items-center justify-center">
       <div className="text-center">
         <p className="text-zinc-500 dark:text-zinc-400 mb-4">Kurs bulunamadı.</p>
         <Link href="/courses" className="text-indigo-600 dark:text-indigo-400 text-sm hover:underline">← Kurslara dön</Link>
@@ -158,7 +158,7 @@ export default function CourseDetailPage() {
   const isFree = price === 0;
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <main className="max-w-5xl mx-auto px-6 py-10">
         <Link href="/courses" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors mb-6">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
