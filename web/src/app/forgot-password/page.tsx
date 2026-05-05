@@ -7,12 +7,14 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [debugUrl, setDebugUrl] = useState("");
   const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setSubmitting(true);
+    setDebugUrl("");
     try {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
@@ -24,6 +26,7 @@ export default function ForgotPasswordPage() {
         setError(json.error || "Bir hata oluştu.");
       } else {
         setSent(true);
+        if (json.debugUrl) setDebugUrl(json.debugUrl);
       }
     } catch {
       setError("Sunucuya bağlanılamadı. Lütfen tekrar deneyin.");
@@ -60,6 +63,14 @@ export default function ForgotPasswordPage() {
               <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-3">
                 E-posta birkaç dakika içinde ulaşmazsa spam klasörünüzü kontrol edin.
               </p>
+              {debugUrl && (
+                <div className="mt-4 p-4 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-800 rounded-xl text-left">
+                  <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">Geliştirici Modu: Sıfırlama Bağlantısı</p>
+                  <Link href={debugUrl} className="text-xs text-indigo-700 dark:text-indigo-300 break-all hover:underline font-medium">
+                    {debugUrl}
+                  </Link>
+                </div>
+              )}
               <Link href="/login"
                 className="mt-6 inline-block w-full py-2.5 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 transition-all text-center shadow-sm">
                 Giriş Sayfasına Dön

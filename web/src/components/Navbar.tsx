@@ -46,6 +46,17 @@ export default function Navbar() {
     setNotifications((n) => n.map((x) => ({ ...x, isRead: true })));
   }
 
+  async function deleteNotification(id: string) {
+    const token = localStorage.getItem("classy_token");
+    const res = await fetch(`/api/notifications/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (res.ok) {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }
+  }
+
   function toggleDark() {
     const next = !dark;
     setDark(next);
@@ -99,99 +110,120 @@ export default function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-20 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-6">
-          {/* Logo */}
-          <Link href={user?.role === "ADMIN" ? "/admin" : user ? "/dashboard" : "/"} className="flex items-center mr-2">
-            <span className="font-bold text-zinc-900 dark:text-white text-xl tracking-tight">ClassY</span>
-          </Link>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+          {/* SOL: Logo */}
+          <div className="flex items-center">
+            <Link href={user?.role === "ADMIN" ? "/admin" : user ? "/dashboard" : "/"} className="flex items-center">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-lg mr-2.5 shadow-sm shadow-indigo-200 dark:shadow-none">
+                C
+              </div>
+              <span className="font-bold text-zinc-900 dark:text-white text-xl tracking-tight hidden sm:block">ClassY</span>
+            </Link>
+          </div>
 
-          {/* Desktop Nav */}
-          {user && (
-            <nav className="hidden md:flex items-center gap-5">
-              {navLinks.map(l => (
-                <Link key={l.href} href={l.href} className={linkClass(l.href)}>{l.label}</Link>
-              ))}
-            </nav>
-          )}
-
-          <div className="flex-1" />
-
-          {/* Dark mode toggle */}
-          <button onClick={toggleDark} title={dark ? "Açık mod" : "Gece modu"}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-            {dark ? (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-              </svg>
+          {/* ORTA: Desktop Nav Links (Centered) */}
+          <div className="hidden md:flex items-center absolute left-1/2 -translate-x-1/2">
+            {user && (
+              <nav className="flex items-center gap-6 lg:gap-8">
+                {navLinks.map(l => (
+                  <Link key={l.href} href={l.href} className={linkClass(l.href)}>{l.label}</Link>
+                ))}
+              </nav>
             )}
-          </button>
+          </div>
 
-          {/* Bildirim zili */}
-          {user && (
-            <div className="relative">
-              <button onClick={() => { setNotifOpen((v) => !v); if (unread > 0) markAllRead(); }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors relative">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          {/* SAĞ: Controls */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Dark mode toggle */}
+            <button onClick={toggleDark} title={dark ? "Açık mod" : "Gece modu"}
+              className="w-9 h-9 flex items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all">
+              {dark ? (
+                <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
                 </svg>
-                {unread > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold leading-none">
-                    {unread > 9 ? "9+" : unread}
-                  </span>
-                )}
-              </button>
-              {notifOpen && (
-                <div className="absolute right-0 top-10 w-80 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-xl z-50 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-                    <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Bildirimler</p>
-                  </div>
-                  <div className="max-h-72 overflow-y-auto divide-y divide-zinc-50 dark:divide-zinc-800">
-                    {notifications.length === 0 ? (
-                      <p className="text-sm text-zinc-400 text-center py-6">Bildirim yok</p>
-                    ) : notifications.map((n) => (
-                      <div key={n.id} className={`px-4 py-3 text-xs ${n.isRead ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-700 dark:text-zinc-300 bg-indigo-50/50 dark:bg-indigo-950/20"}`}>
-                        <p>{n.message}</p>
-                        <p className="text-zinc-400 mt-0.5">{new Date(n.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              ) : (
+                <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                </svg>
               )}
-            </div>
-          )}
+            </button>
 
-          {/* Desktop Auth */}
-          {user ? (
-            <div className="hidden md:flex items-center gap-3">
-              <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity" title="Profilim">
-                <div className="w-7 h-7 rounded-lg bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
-                  {initials}
-                </div>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400 max-w-28 truncate">{user.fullName || user.email}</span>
-              </Link>
-              <button onClick={logout}
-                className="text-sm px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-red-300 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-                Çıkış
-              </button>
-            </div>
-          ) : pathname !== "/" ? (
-            <div className="hidden md:flex items-center gap-3">
-              <Link href="/login" className="text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">Giriş Yap</Link>
-              <Link href="/register" className="text-sm px-4 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">Kayıt Ol</Link>
-            </div>
-          ) : null}
+            {/* Bildirim zili */}
+            {user && (
+              <div className="relative">
+                <button onClick={() => { setNotifOpen((v) => !v); if (unread > 0) markAllRead(); }}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all relative">
+                  <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                  {unread > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-zinc-900" />
+                  )}
+                </button>
+                {notifOpen && (
+                  <div className="absolute right-0 top-12 w-80 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden ring-1 ring-black/5">
+                    <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-800/30">
+                      <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Bildirimler</p>
+                      {unread > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-md">YENİ</span>}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto divide-y divide-zinc-50 dark:divide-zinc-800">
+                      {notifications.length === 0 ? (
+                        <div className="py-10 text-center">
+                          <p className="text-2xl mb-1 opacity-20">🔔</p>
+                          <p className="text-sm text-zinc-400">Henüz bildirim yok</p>
+                        </div>
+                      ) : notifications.map((n) => (
+                        <div key={n.id} className={`group relative px-4 py-3.5 text-xs transition-colors ${n.isRead ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-800 dark:text-zinc-200 bg-indigo-50/30 dark:bg-indigo-900/10 font-medium"}`}>
+                          <p className="leading-relaxed pr-6">{n.message}</p>
+                          <p className="text-[10px] text-zinc-400 mt-1.5">{new Date(n.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+                          <button onClick={() => deleteNotification(n.id)} className="absolute right-2 top-3 w-6 h-6 flex items-center justify-center text-zinc-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" title="Sil">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
-          {/* Hamburger (mobil) */}
-          <button onClick={() => setMenuOpen(v => !v)}
-            className="md:hidden w-8 h-8 flex flex-col items-center justify-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
-            <span className={`block w-4 h-0.5 bg-current transition-all ${menuOpen ? "rotate-45 translate-y-2" : ""}`} />
-            <span className={`block w-4 h-0.5 bg-current transition-all ${menuOpen ? "opacity-0" : ""}`} />
-            <span className={`block w-4 h-0.5 bg-current transition-all ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
-          </button>
+            {/* Profil ve Çıkış */}
+            {user ? (
+              <div className="hidden md:flex items-center gap-3 ml-2 pl-4 border-l border-zinc-200 dark:border-zinc-800">
+                <Link href="/profile" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity" title="Profilim">
+                  <div className="w-8 h-8 rounded-xl bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm shadow-indigo-200 dark:shadow-none">
+                    {initials}
+                  </div>
+                  <div className="hidden lg:block text-left">
+                    <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 max-w-24 truncate leading-none mb-0.5">{user.fullName || "Kullanıcı"}</p>
+                    <p className="text-[10px] text-zinc-400 truncate max-w-24 leading-none">Profilim</p>
+                  </div>
+                </Link>
+                <button onClick={logout}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:border-red-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                  title="Güvenli Çıkış">
+                  <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </button>
+              </div>
+            ) : pathname !== "/" ? (
+              <div className="hidden md:flex items-center gap-3">
+                <Link href="/login" className="text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Giriş Yap</Link>
+                <Link href="/register" className="text-sm px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold shadow-sm shadow-indigo-200 dark:shadow-none">Kayıt Ol</Link>
+              </div>
+            ) : null}
+
+            {/* Hamburger (mobil) */}
+            <button onClick={() => setMenuOpen(v => !v)}
+              className="md:hidden w-9 h-9 flex flex-col items-center justify-center gap-1 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all">
+              <span className={`block w-4.5 h-0.5 bg-current transition-all ${menuOpen ? "rotate-45 translate-y-1.5" : ""}`} />
+              <span className={`block w-4.5 h-0.5 bg-current transition-all ${menuOpen ? "opacity-0" : ""}`} />
+              <span className={`block w-4.5 h-0.5 bg-current transition-all ${menuOpen ? "-rotate-45 -translate-y-1.5" : ""}`} />
+            </button>
+          </div>
         </div>
       </header>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 const TARGETS = [
@@ -24,9 +24,48 @@ export default function AdminAnnouncementsPage() {
   const [history, setHistory] = useState<SentItem[]>([]);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
+  useEffect(() => {
+    if (token) loadHistory();
+  }, [token]);
+
+  async function loadHistory() {
+    try {
+      const res = await fetch("/api/admin/announcements", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.announcements) {
+        setHistory(data.announcements.map((a: any) => ({
+          message: a.message,
+          target: "Bilinmiyor",
+          count: a.count,
+          sentAt: a.createdAt
+        })));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   function showToast(msg: string, ok: boolean) {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 4000);
+  }
+
+  async function deleteAnnouncement(msg: string) {
+    if (!confirm("Bu duyuruyu tüm kullanıcılardan silmek istediğinize emin misiniz?")) return;
+    
+    const res = await fetch(`/api/admin/announcements?message=${encodeURIComponent(msg)}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    if (res.ok) {
+      showToast("Duyuru silindi.", true);
+      loadHistory();
+    } else {
+      showToast("Duyuru silinemedi.", false);
+    }
   }
 
   async function sendAnnouncement() {
@@ -42,10 +81,7 @@ export default function AdminAnnouncementsPage() {
     const data = await res.json();
     if (res.ok) {
       showToast(`Duyuru ${data.count} kullanıcıya gönderildi.`, true);
-      setHistory((prev) => [
-        { message: message.trim(), target: targetRole, count: data.count, sentAt: new Date().toISOString() },
-        ...prev,
-      ]);
+      loadHistory();
       setMessage("");
     } else {
       showToast(data.error || "Gönderilemedi.", false);
@@ -111,23 +147,25 @@ export default function AdminAnnouncementsPage() {
         </button>
       </div>
 
-      {/* Gönderilen duyurular (bu oturum) */}
+      {/* Gönderilen duyurular */}
       {history.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Bu Oturumda Gönderilenler</h2>
+          <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Geçmiş Duyurular</h2>
           <div className="space-y-2">
             {history.map((h, i) => (
               <div key={i} className="bg-white dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800 rounded-xl px-5 py-4">
                 <div className="flex items-start justify-between gap-4">
                   <p className="text-sm text-zinc-700 dark:text-zinc-300 flex-1">{h.message}</p>
-                  <span className="text-xs text-zinc-400 whitespace-nowrap">
-                    {new Date(h.sentAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="text-xs text-zinc-400 whitespace-nowrap">
+                      {new Date(h.sentAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    <button onClick={() => deleteAnnouncement(h.message)} className="text-xs text-red-500 hover:text-red-700 transition-colors">
+                      Sil
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3 mt-2">
-                  <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                    {TARGETS.find(t => t.value === h.target)?.label}
-                  </span>
                   <span className="text-xs text-zinc-400">· {h.count} kişiye ulaştı</span>
                 </div>
               </div>

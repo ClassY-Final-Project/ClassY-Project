@@ -107,6 +107,7 @@ export interface QuizQuestion {
   questionText: string;
   options: string[];
   userAnswer: string | null;
+  correctAnswer?: string;
 }
 
 export interface Quiz {

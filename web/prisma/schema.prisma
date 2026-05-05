@@ -27,15 +27,15 @@ model User {
   createdAt    DateTime @default(now())
 
   // Relations
-  courses            Course[]          @relation("InstructorCourses")
-  enrollments        Enrollment[]
-  studyNotes         StudyNote[]
-  quizzes            Quiz[]
-  assignedQuizzes    Quiz[]            @relation("AssignedQuizzes")
-  liveRoomsHosted    LiveRoom[]        @relation("InstructorRooms")
-  roomParticipations RoomParticipant[]
-  subscriptions      Subscription[]    @relation("StudentSubscriptions")
-  subscribers        Subscription[]    @relation("InstructorSubscribers")
+  courses                 Course[]               @relation("InstructorCourses")
+  enrollments             Enrollment[]
+  studyNotes              StudyNote[]
+  quizzes                 Quiz[]
+  assignedQuizzes         Quiz[]                 @relation("AssignedQuizzes")
+  liveRoomsHosted         LiveRoom[]             @relation("InstructorRooms")
+  roomParticipations      RoomParticipant[]
+  subscriptions           Subscription[]         @relation("StudentSubscriptions")
+  subscribers             Subscription[]         @relation("InstructorSubscribers")
   lessonProgress          LessonProgress[]
   reviews                 CourseReview[]
   notifications           Notification[]
@@ -56,7 +56,7 @@ model Course {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  instructor  User            @relation("InstructorCourses", fields: [instructorId], references: [id])
+  instructor  User            @relation("InstructorCourses", fields: [instructorId], references: [id], onDelete: Cascade)
   sections    CourseSection[]
   lessons     Lesson[]
   enrollments Enrollment[]
@@ -102,10 +102,10 @@ model Lesson {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  section   CourseSection    @relation(fields: [sectionId, courseId], references: [id, courseId], onDelete: Cascade)
-  contents  LessonContent[]
-  progress  LessonProgress[]
+  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  section  CourseSection    @relation(fields: [sectionId, courseId], references: [id, courseId], onDelete: Cascade)
+  contents LessonContent[]
+  progress LessonProgress[]
 
   @@unique([sectionId, orderIndex])
   @@index([courseId])
@@ -140,8 +140,8 @@ model Enrollment {
   courseId    String
   purchasedAt DateTime @default(now())
 
-  student User   @relation(fields: [studentId], references: [id])
-  course  Course @relation(fields: [courseId], references: [id])
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, courseId])
 }
@@ -207,7 +207,7 @@ model StudyNote {
   subject         String     @default("Genel")
   weekId          String?
 
-  student    User        @relation(fields: [studentId], references: [id])
+  student    User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
   week       Week?       @relation(fields: [weekId], references: [id], onDelete: Cascade)
   quizzes    Quiz[]
   flashcards Flashcard[]
@@ -269,9 +269,9 @@ model Quiz {
   assignedByInstructorId String?
   weekId                 String?
 
-  note                 StudyNote?     @relation(fields: [noteId], references: [id])
-  student              User           @relation(fields: [studentId], references: [id])
-  assignedByInstructor User?          @relation("AssignedQuizzes", fields: [assignedByInstructorId], references: [id])
+  note                 StudyNote?     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  student              User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assignedByInstructor User?          @relation("AssignedQuizzes", fields: [assignedByInstructorId], references: [id], onDelete: SetNull)
   week                 Week?          @relation(fields: [weekId], references: [id], onDelete: Cascade)
   questions            QuizQuestion[]
 
@@ -307,7 +307,7 @@ model LiveRoom {
   endedAt       DateTime?
   createdAt     DateTime   @default(now())
 
-  instructor   User              @relation("InstructorRooms", fields: [instructorId], references: [id])
+  instructor   User              @relation("InstructorRooms", fields: [instructorId], references: [id], onDelete: Cascade)
   participants RoomParticipant[]
 }
 
@@ -318,7 +318,7 @@ model RoomParticipant {
   joinedAt DateTime @default(now())
 
   room LiveRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user User     @relation(fields: [userId], references: [id])
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([roomId, userId])
 }
@@ -345,7 +345,7 @@ model StudyRoom {
   scheduledEnd   DateTime?
   createdAt      DateTime      @default(now())
 
-  createdBy    User                   @relation("StudyRoomsCreated", fields: [createdById], references: [id])
+  createdBy    User                   @relation("StudyRoomsCreated", fields: [createdById], references: [id], onDelete: Cascade)
   participants StudyRoomParticipant[]
 
   @@map("study_rooms")
@@ -361,7 +361,7 @@ model StudyRoomParticipant {
   isActive Boolean   @default(true)
 
   room StudyRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user User      @relation(fields: [userId], references: [id])
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([roomId, userId])
   @@map("study_room_participants")
@@ -375,8 +375,8 @@ model Subscription {
   subscribedAt DateTime @default(now())
   isPaid       Boolean  @default(false)
 
-  student    User @relation("StudentSubscriptions", fields: [studentId], references: [id])
-  instructor User @relation("InstructorSubscribers", fields: [instructorId], references: [id])
+  student    User @relation("StudentSubscriptions", fields: [studentId], references: [id], onDelete: Cascade)
+  instructor User @relation("InstructorSubscribers", fields: [instructorId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, instructorId])
 }

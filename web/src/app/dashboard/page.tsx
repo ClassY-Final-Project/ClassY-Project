@@ -74,8 +74,6 @@ export default function DashboardPage() {
   const [flipped, setFlipped] = useState<Set<number>>(new Set());
 
   const [generated, setGenerated] = useState<{ noteId: string; quizId: string; summary: string; flashcards: { front: string; back: string }[]; quiz: GeneratedQuizItem[] } | null>(null);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
-  const [showResults, setShowResults] = useState(false);
 
   const [activeView, setActiveView] = useState<"dashboard" | "karne">("dashboard");
   const [studyStats, setStudyStats] = useState<SubjectStat[]>([]);
@@ -138,8 +136,6 @@ export default function DashboardPage() {
     setView({ weekId, noteId });
     setGenerated(null);
     setFile(null);
-    setSelectedAnswers({});
-    setShowResults(false);
     setFlipped(new Set());
     const res = await getNote(noteId);
     if (res.ok && res.note) setNoteDetail(res.note);
@@ -151,8 +147,6 @@ export default function DashboardPage() {
     setGenerated(null);
     setFile(null);
     setError(null);
-    setSelectedAnswers({});
-    setShowResults(false);
     setFlipped(new Set());
   }
 
@@ -593,10 +587,6 @@ export default function DashboardPage() {
                   generated={generated}
                   flipped={flipped}
                   toggleFlip={toggleFlip}
-                  selectedAnswers={selectedAnswers}
-                  setSelectedAnswers={setSelectedAnswers}
-                  showResults={showResults}
-                  setShowResults={setShowResults}
                 />
               ) : (
                 <div className="max-w-3xl mx-auto px-6 py-10">
@@ -714,10 +704,6 @@ function UploadView(props: {
   generated: { noteId: string; quizId: string; summary: string; flashcards: { front: string; back: string }[]; quiz: GeneratedQuizItem[] } | null;
   flipped: Set<number>;
   toggleFlip: (i: number) => void;
-  selectedAnswers: Record<number, string>;
-  setSelectedAnswers: React.Dispatch<React.SetStateAction<Record<number, string>>>;
-  showResults: boolean;
-  setShowResults: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const { subjectName, weekNumber, file, fileInputRef, onFile, onGenerate, working, error, generated } = props;
 
@@ -906,21 +892,11 @@ function ResultView({
   generated,
   flipped,
   toggleFlip,
-  selectedAnswers,
-  setSelectedAnswers,
-  showResults,
-  setShowResults,
 }: {
   generated: { noteId: string; quizId: string; summary: string; flashcards: { front: string; back: string }[]; quiz: GeneratedQuizItem[] };
   flipped: Set<number>;
   toggleFlip: (i: number) => void;
-  selectedAnswers: Record<number, string>;
-  setSelectedAnswers: React.Dispatch<React.SetStateAction<Record<number, string>>>;
-  showResults: boolean;
-  setShowResults: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const correctCount = generated.quiz.filter((q, i) => selectedAnswers[i] === q.answer).length;
-
   return (
     <div className="mt-10 space-y-10">
       <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl text-green-700 dark:text-green-400 text-sm">
@@ -944,67 +920,25 @@ function ResultView({
 
       {generated.quiz.length > 0 && (
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200">📋 Quiz ({generated.quiz.length} Soru)</h2>
-            {showResults && (
-              <span className="text-sm font-bold text-indigo-700 dark:text-indigo-400">
-                {correctCount} / {generated.quiz.length}
-              </span>
-            )}
-          </div>
-          <div className="space-y-3">
-            {generated.quiz.map((q, i) => (
-              <div key={i} className="bg-white dark:bg-zinc-800/50 rounded-2xl p-5 border border-zinc-100 dark:border-zinc-800">
-                <p className="font-medium text-zinc-800 dark:text-zinc-200 mb-3 text-sm">
-                  {i + 1}. {q.question}
-                </p>
-                <div className="space-y-2">
-                  {q.options.map((opt, j) => {
-                    const picked = selectedAnswers[i] === opt;
-                    const isRight = showResults && q.answer === opt;
-                    const isWrong = showResults && picked && q.answer !== opt;
-                    return (
-                      <button
-                        key={j}
-                        disabled={showResults}
-                        onClick={() => setSelectedAnswers((p) => ({ ...p, [i]: opt }))}
-                        className={`w-full text-left px-4 py-2 rounded-lg text-sm border transition-colors ${
-                          isRight
-                            ? "bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300"
-                            : isWrong
-                            ? "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300"
-                            : picked
-                            ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300"
-                            : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-indigo-300"
-                        }`}
-                      >
-                        {opt}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {!showResults ? (
-            <button
-              onClick={() => setShowResults(true)}
-              disabled={Object.keys(selectedAnswers).length !== generated.quiz.length}
-              className="mt-4 w-full py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-40"
-            >
-              Cevapları Göster
-            </button>
-          ) : (
-            <Link
-              href={`/study/quiz/${generated.quizId}`}
-              className="mt-4 block text-center py-2.5 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 rounded-xl text-sm font-medium hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
-            >
-              Detaylı görüntüle →
-            </Link>
-          )}
+          <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-2">📋 Quiz ({generated.quiz.length} Soru)</h2>
+          <p className="text-sm text-zinc-400 mb-4">Bu konuyu pekiştirmek için oluşturulan quiz hazır.</p>
+          <Link
+            href={`/study/quiz/${generated.quizId}`}
+            className="inline-block px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            Quize Git
+          </Link>
         </section>
       )}
+      
+      <div className="flex justify-end pt-4">
+        <button 
+          onClick={() => window.location.href = "/dashboard"}
+          className="px-8 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-sm font-bold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors shadow-md"
+        >
+          Tamam
+        </button>
+      </div>
     </div>
   );
 }

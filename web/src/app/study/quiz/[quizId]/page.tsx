@@ -83,9 +83,8 @@ export default function QuizPage() {
     const res = await submitQuiz(quizId, answers);
     if (res.ok) {
       setResult({ score: res.score!, correctCount: res.correctCount!, totalQuestions: res.totalQuestions! });
-      setSubmitted(true);
-      setShowResultScreen(true);
       showToast(`Quiz tamamlandı! Skorunuz: %${res.score}`, res.score! >= 50 ? "success" : "info");
+      await loadQuiz(); // Fetch again to get the correct answers
     } else {
       showToast(res.error || "Quiz gönderilemedi.", "error");
       setError(res.error || "Quiz gönderilemedi.");
@@ -209,14 +208,30 @@ export default function QuizPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {(q.options as string[]).map((opt, oi) => {
                     const isSelected = selected === opt;
+                    const isCorrect = submitted && q.correctAnswer === opt;
+                    const isWrongSelection = submitted && isSelected && q.correctAnswer !== opt;
+                    
+                    let btnClass = "";
+                    if (!submitted) {
+                      btnClass = isSelected
+                        ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-400 dark:border-indigo-600 text-indigo-800 dark:text-indigo-300"
+                        : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:border-indigo-600";
+                    } else {
+                      if (isCorrect) {
+                        btnClass = "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-500 text-emerald-800 dark:text-emerald-300";
+                      } else if (isWrongSelection) {
+                        btnClass = "bg-red-50 dark:bg-red-900/30 border-red-400 text-red-800 dark:text-red-300";
+                      } else {
+                        btnClass = "border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-600 opacity-60";
+                      }
+                    }
+
                     return (
                       <button key={oi} onClick={() => { if (submitted) return; setAnswers((prev) => ({ ...prev, [q.id]: opt })); }}
-                        className={`text-left px-4 py-2.5 rounded-xl text-sm transition-all border ${
-                          isSelected
-                            ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-400 dark:border-indigo-600 text-indigo-800 dark:text-indigo-300"
-                            : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:border-indigo-600"
-                        } ${submitted ? "cursor-default" : "cursor-pointer"}`}>
+                        className={`text-left px-4 py-2.5 rounded-xl text-sm transition-all border ${btnClass} ${submitted ? "cursor-default" : "cursor-pointer"}`}>
                         <span className="font-medium mr-1.5">{String.fromCharCode(65 + oi)})</span>{opt}
+                        {isCorrect && <span className="float-right text-emerald-600 dark:text-emerald-400">✓</span>}
+                        {isWrongSelection && <span className="float-right text-red-500">✗</span>}
                       </button>
                     );
                   })}

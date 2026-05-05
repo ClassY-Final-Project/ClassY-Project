@@ -22,6 +22,7 @@ export async function GET(
             questionText: true,
             options: true,
             userAnswer: true,
+            correctAnswer: true,
           },
         },
       },
@@ -32,6 +33,14 @@ export async function GET(
         { error: "Sınav bulunamadı veya görüntüleme yetkiniz yok." },
         { status: 404 },
       );
+    }
+
+    // Öğrenci quizi bitirmediyse doğru cevapları gizle
+    if (quiz.score === null) {
+      quiz.questions = quiz.questions.map(q => {
+        const { correctAnswer, ...rest } = q;
+        return rest as any;
+      });
     }
 
     return NextResponse.json({ message: "Sınav başarıyla getirildi.", quiz }, { status: 200 });
