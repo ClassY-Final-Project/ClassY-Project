@@ -102,8 +102,10 @@ export default function Navbar() {
         <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-6">
           {/* Logo */}
           <Link href={user?.role === "ADMIN" ? "/admin" : user ? "/dashboard" : "/"} className="flex items-center gap-2 mr-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-base">C</div>
-            <span className="font-bold text-zinc-900 dark:text-white text-lg">ClassY</span>
+            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-base shadow-sm">C</div>
+            <span className="font-bold text-lg">
+              <span className="text-zinc-900 dark:text-white">Class</span><span className="text-indigo-600 dark:text-indigo-400">Y</span>
+            </span>
           </Link>
 
           {/* Desktop Nav */}
