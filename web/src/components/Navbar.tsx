@@ -92,7 +92,7 @@ export default function Navbar() {
           { href: "/instructor/earnings", label: "💰 Kazançlarım" },
           { href: "/instructor/quiz", label: "📋 Quiz" },
           { href: "/live", label: "🔴 Canlı" },
-          { href: "/study-rooms", label: "📚 Odalar" },
+          // { href: "/study-rooms", label: "📚 Odalar" },
           { href: "/courses", label: "📖 Katalog" },
         ]
       : [
