@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 
 export default function CertificatePage() {
@@ -47,9 +48,9 @@ export default function CertificatePage() {
 
           <div className="space-y-6">
             {/* Logo & başlık */}
-            <div className="flex items-center justify-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">C</div>
-              <span className="text-2xl font-bold text-indigo-600">ClassY</span>
+            <div className="flex items-center justify-center gap-0">
+              <Image src="/logo.png" alt="ClassY Logo" width={44} height={44} className="w-11 h-11 object-contain" />
+              <span className="font-extrabold text-2xl tracking-tight" style={{ color: '#763fff' }}>classY</span>
             </div>
 
             <div>
@@ -79,14 +80,14 @@ export default function CertificatePage() {
               </div>
               <div className="text-right">
                 <div className="w-16 h-0.5 bg-zinc-300 mb-1" />
-                <p className="text-xs text-zinc-400">ClassY Platform</p>
+                <p className="text-xs text-zinc-400">classY Platform</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Aksiyonlar */}
-        <div className="flex gap-3 mt-6 justify-center">
+        <div className="flex gap-3 mt-6 justify-center print:hidden">
           <button
             onClick={() => window.print()}
             className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-2"
