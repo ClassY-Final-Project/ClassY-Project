@@ -273,8 +273,8 @@ export default function PricingPage() {
         <div className="mt-16 max-w-2xl mx-auto text-center">
           <p className="text-zinc-500 dark:text-zinc-400 text-sm">
             Sorularınız için{" "}
-            <a href="mailto:destek@classy.com" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
-              destek@classy.com
+            <a href="mailto:classydestek@gmail.com" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
+              classydestek@gmail.com
             </a>{" "}
             adresine yazabilirsiniz.
           </p>
