@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { randomBytes } from "crypto";
@@ -11,18 +11,24 @@ function dailyHeaders() {
   };
 }
 
-// GET /api/study-rooms — Aktif genel odaları listele (en çok katılımcı önce)
+const ROOM_CREATION_LIMITS: Record<string, number> = { FREE: 0, GOLD: 1, PLATINUM: 5 };
+
+// GET /api/study-rooms
 export async function GET(request: Request) {
   const { user, error } = verifyToken(request);
   if (error) return error;
   if (!user) return NextResponse.json({ error: "Yetkisiz." }, { status: 401 });
 
   try {
-    // Süresi geçmiş odaları otomatik kapat
+    const dbUser = await prisma.user.findUnique({ where: { id: user.userId }, select: { plan: true, planExpiresAt: true } });
+    const userPlan = (dbUser?.planExpiresAt && dbUser.planExpiresAt > new Date()) ? (dbUser.plan ?? "FREE") : "FREE";
+
     await (prisma as any).studyRoom.updateMany({
       where: { isActive: true, expiresAt: { lt: new Date() } },
       data: { isActive: false },
     });
+
+    const accessFilter: string[] = ["PUBLIC", "GOLD_PLUS", "PLATINUM_ONLY"];
 
     const rooms = await (prisma as any).studyRoom.findMany({
       where: { isActive: true, isPrivate: false },
@@ -37,18 +43,15 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    const sorted = rooms.sort(
-      (a: any, b: any) => b._count.participants - a._count.participants
-    );
-
-    return NextResponse.json({ rooms: sorted });
+    const sorted = rooms.sort((a: any, b: any) => b._count.participants - a._count.participants);
+    return NextResponse.json({ rooms: sorted, userPlan });
   } catch (err: any) {
-    console.error("Study rooms GET hatası:", err);
+    console.error("Study rooms GET hatasi:", err);
     return NextResponse.json({ error: "Sunucu hatası." }, { status: 500 });
   }
 }
 
-// POST /api/study-rooms — Yeni oda oluştur
+// POST /api/study-rooms
 export async function POST(request: Request) {
   const { user, error } = verifyToken(request);
   if (error) return error;
@@ -58,8 +61,35 @@ export async function POST(request: Request) {
   }
 
   try {
+    const dbUser = await prisma.user.findUnique({ where: { id: user.userId }, select: { plan: true, planExpiresAt: true } });
+    const userPlan = (dbUser?.planExpiresAt && dbUser.planExpiresAt > new Date()) ? (dbUser.plan ?? "FREE") : "FREE";
+    const weeklyLimit = ROOM_CREATION_LIMITS[userPlan] ?? 0;
+
+    if (weeklyLimit === 0) {
+      return NextResponse.json({
+        error: "Ücretsiz planda çalışma odası oluşturulamaz.",
+        code: "ROOM_CREATION_NOT_ALLOWED",
+        plan: userPlan,
+      }, { status: 403 });
+    }
+
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    const roomsThisWeek = await (prisma as any).studyRoom.count({
+      where: { createdById: user.userId, createdAt: { gte: weekStart } },
+    });
+    if (roomsThisWeek >= weeklyLimit) {
+      return NextResponse.json({
+        error: `${userPlan} planında bu hafta en fazla ${weeklyLimit} oda oluşturabilirsiniz.`,
+        code: "ROOM_LIMIT_EXCEEDED",
+        plan: userPlan,
+        limit: weeklyLimit,
+      }, { status: 403 });
+    }
+
     const body = await request.json().catch(() => ({}));
-    const { name, topic, type, maxCapacity, isPrivate, scheduledStart, scheduledEnd } = body;
+    const { name, topic, type, maxCapacity, isPrivate, scheduledStart, scheduledEnd, roomAccess } = body;
 
     if (!name || name.trim().length < 2) {
       return NextResponse.json({ error: "Oda adı en az 2 karakter olmalıdır." }, { status: 400 });
@@ -68,14 +98,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Oda tipi VOICE veya SILENT olmalıdır." }, { status: 400 });
     }
 
-    // Genel oda için zaman aralığı zorunlu
+    const validAccess = ["PUBLIC", "GOLD_PLUS", "PLATINUM_ONLY"];
+    const finalAccess = validAccess.includes(roomAccess) ? roomAccess : "PUBLIC";
+    if (finalAccess === "GOLD_PLUS" && userPlan === "FREE") {
+      return NextResponse.json({ error: "Gold ve üstü plan gerekiyor.", code: "PLAN_REQUIRED" }, { status: 403 });
+    }
+    if (finalAccess === "PLATINUM_ONLY" && userPlan !== "PLATINUM") {
+      return NextResponse.json({ error: "Platinum plan gerekiyor.", code: "PLAN_REQUIRED" }, { status: 403 });
+    }
+
     if (!isPrivate && (!scheduledStart || !scheduledEnd)) {
       return NextResponse.json({ error: "Genel odalar için başlangıç ve bitiş saati gereklidir." }, { status: 400 });
     }
 
     let dailyRoomName: string | null = null;
     if (type === "VOICE") {
-      const roomName = `study-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const roomName = `study-${randomBytes(4).toString("hex")}`;
       const dailyRes = await fetch(`${DAILY_API}/rooms`, {
         method: "POST",
         headers: dailyHeaders(),
@@ -99,7 +137,7 @@ export async function POST(request: Request) {
     const inviteCode = isPrivate ? randomBytes(5).toString("hex") : null;
     const expiresAt = scheduledEnd
       ? new Date(scheduledEnd)
-      : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 gün
+      : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
     const room = await (prisma as any).studyRoom.create({
       data: {
@@ -114,6 +152,7 @@ export async function POST(request: Request) {
         inviteCode,
         scheduledStart: scheduledStart ? new Date(scheduledStart) : null,
         scheduledEnd: scheduledEnd ? new Date(scheduledEnd) : null,
+        roomAccess: finalAccess,
       },
       include: {
         createdBy: { select: { id: true, fullName: true, avatarUrl: true } },

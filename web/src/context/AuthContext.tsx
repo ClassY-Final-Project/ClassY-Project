@@ -9,6 +9,8 @@ interface User {
   fullName: string | null;
   role: "STUDENT" | "INSTRUCTOR" | "ADMIN";
   createdAt: string;
+  plan?: string;
+  planExpiresAt?: string | null;
 }
 
 interface AuthContextType {
@@ -18,6 +20,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error?: string }>;
   loginAsDemo: () => void;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -88,8 +91,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   }
 
+  async function refreshUser() {
+    const t = localStorage.getItem("classy_token");
+    if (t) await fetchMe(t);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, loginAsDemo, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, loginAsDemo, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -261,7 +261,7 @@ export async function generateForWeek(
   weekId: string,
   file: File,
   questionCount = 10
-): Promise<{ ok: boolean; data?: WeekGeneratedBundle; error?: string }> {
+): Promise<{ ok: boolean; data?: WeekGeneratedBundle; error?: string; code?: string }> {
   const fd = new FormData();
   fd.append("file", file);
   fd.append("question_count", String(questionCount));
@@ -271,7 +271,7 @@ export async function generateForWeek(
     body: fd,
   });
   const json = await res.json();
-  if (!res.ok) return { ok: false, error: json.error };
+  if (!res.ok) return { ok: false, error: json.error, code: json.code };
   return { ok: true, data: json };
 }
 

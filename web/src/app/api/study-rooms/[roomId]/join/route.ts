@@ -22,6 +22,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ roo
       return NextResponse.json({ error: "Oda dolu." }, { status: 400 });
     }
 
+    // Plan bazlı erişim kontrolü
+    const dbUser = await prisma.user.findUnique({ where: { id: user.userId }, select: { plan: true, planExpiresAt: true } });
+    const userPlan = (dbUser?.planExpiresAt && dbUser.planExpiresAt > new Date()) ? (dbUser.plan ?? "FREE") : "FREE";
+
+    const roomAccess = room.roomAccess ?? "PUBLIC";
+    if (roomAccess === "GOLD_PLUS" && userPlan === "FREE") {
+      return NextResponse.json({ error: "Bu odaya katılmak için Gold veya Platinum plan gereklidir.", code: "PLAN_REQUIRED" }, { status: 403 });
+    }
+    if (roomAccess === "PLATINUM_ONLY" && userPlan !== "PLATINUM") {
+      return NextResponse.json({ error: "Bu odaya katılmak için Platinum plan gereklidir.", code: "PLAN_REQUIRED" }, { status: 403 });
+    }
+
     const body = await request.json().catch(() => ({}));
     const { studying } = body;
 

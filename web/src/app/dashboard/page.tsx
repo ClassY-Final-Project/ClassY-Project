@@ -20,6 +20,7 @@ import {
 } from "@/lib/apiClient";
 import { DashboardSkeleton } from "@/components/Skeleton";
 import { useToast } from "@/components/Toast";
+import UpgradeModal from "@/components/UpgradeModal";
 
 interface SelectedView {
   weekId: string;
@@ -90,6 +91,7 @@ export default function DashboardPage() {
   const [studyStats, setStudyStats] = useState<SubjectStat[]>([]);
   const [totalStudySeconds, setTotalStudySeconds] = useState(0);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [upgradeModal, setUpgradeModal] = useState<{ title: string; description: string } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -194,6 +196,11 @@ export default function DashboardPage() {
       }
       const s = await getSubjects();
       if (s.ok) setSubjects(s.subjects || []);
+    } else if (res.code === "PDF_LIMIT_EXCEEDED") {
+      setUpgradeModal({
+        title: "PDF Yükleme Limitine Ulaştın",
+        description: res.error || "Bu hafta için PDF yükleme limitini doldurdun. Daha fazla PDF yüklemek için planını yükselt.",
+      });
     } else {
       setError(res.error || "Üretim başarısız.");
     }
@@ -244,6 +251,14 @@ export default function DashboardPage() {
   const activeSubject = subjects.find((s) => s.id === openSubjectId) || null;
 
   return (
+    <>
+    {upgradeModal && (
+      <UpgradeModal
+        title={upgradeModal.title}
+        description={upgradeModal.description}
+        onClose={() => setUpgradeModal(null)}
+      />
+    )}
     <div className="flex flex-1 w-full overflow-hidden bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <div className="flex flex-1 w-full">
         {/* 1. KOLON */}
@@ -746,6 +761,7 @@ export default function DashboardPage() {
         </div>
       )}
     </div>
+    </>
   );
 }
 

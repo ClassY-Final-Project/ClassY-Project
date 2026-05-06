@@ -167,6 +167,104 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section className="py-24 px-6 bg-zinc-50 dark:bg-zinc-900/50">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-4xl font-bold text-zinc-900 dark:text-white mb-4 tracking-tight">Sana uygun fiyat,<br />sınırsız öğrenme</h2>
+            <p className="text-zinc-500 dark:text-zinc-400 text-lg max-w-xl mx-auto">Ücretsiz başla, ihtiyaçlarına göre planını yükselt.</p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {[
+              {
+                name: "Free",
+                price: "0₺",
+                period: "/ay",
+                color: "border-zinc-200 dark:border-zinc-700",
+                badge: null as string | null,
+                badgeStyle: "",
+                features: [
+                  { text: "Her hafta 1 PDF yükleme", ok: true },
+                  { text: "Çalışma odalarına katılabilme", ok: true },
+                  { text: "Canlı derslere katılım", ok: true },
+                  { text: "Çalışma odası oluşturma", ok: false },
+                  { text: "Gold/Platinum odalara erişim", ok: false },
+                ],
+                cta: "Ücretsiz Başla",
+                ctaStyle: "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-100",
+                href: "/register",
+              },
+              {
+                name: "Gold",
+                price: "75₺",
+                period: "/ay",
+                color: "border-amber-400/60 ring-2 ring-amber-400/30",
+                badge: "Popüler",
+                badgeStyle: "bg-amber-400 text-zinc-900",
+                features: [
+                  { text: "Her hafta 5 PDF yükleme", ok: true },
+                  { text: "Haftada 1 çalışma odası oluşturma", ok: true },
+                  { text: "Gold odalar açabilme", ok: true },
+                  { text: "Canlı derslere katılım", ok: true },
+                  { text: "Platinum odalara erişim", ok: false },
+                ],
+                cta: "Gold Planı Seç",
+                ctaStyle: "bg-amber-500 hover:bg-amber-600 text-white",
+                href: "/pricing",
+              },
+              {
+                name: "Platinum",
+                price: "200₺",
+                period: "/ay",
+                color: "border-violet-400/60",
+                badge: "En Kapsamlı",
+                badgeStyle: "bg-violet-500 text-white",
+                features: [
+                  { text: "Her hafta 10 PDF yükleme", ok: true },
+                  { text: "Haftada 5 çalışma odası oluşturma", ok: true },
+                  { text: "Tüm odalara katılma", ok: true },
+                  { text: "Platinum odalar açabilme", ok: true },
+                  { text: "Öncelikli destek", ok: true },
+                ],
+                cta: "Platinum Planı Seç",
+                ctaStyle: "bg-violet-600 hover:bg-violet-700 text-white",
+                href: "/pricing",
+              },
+            ].map((plan) => (
+              <div key={plan.name} className={`relative bg-white dark:bg-zinc-900 border rounded-2xl p-7 flex flex-col ${plan.color}`}>
+                {plan.badge && (
+                  <span className={`absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full ${plan.badgeStyle}`}>{plan.badge}</span>
+                )}
+                <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">{plan.name}</p>
+                <div className="flex items-end gap-1 mb-5">
+                  <span className="text-4xl font-extrabold text-zinc-900 dark:text-white">{plan.price}</span>
+                  <span className="text-zinc-400 dark:text-zinc-500 pb-1">{plan.period}</span>
+                </div>
+                <ul className="space-y-2.5 mb-8 flex-1">
+                  {plan.features.map((f) => (
+                    <li key={f.text} className={`flex items-center gap-2 text-sm ${f.ok ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 line-through"}`}>
+                      {f.ok ? (
+                        <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-zinc-300 dark:text-zinc-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      )}
+                      {f.text}
+                    </li>
+                  ))}
+                </ul>
+                <Link href={plan.href} className={`w-full py-2.5 rounded-xl text-center font-semibold text-sm transition-colors ${plan.ctaStyle}`}>
+                  {plan.cta}
+                </Link>
+              </div>
+            ))}
+          </div>
+          <p className="text-center mt-8 text-sm text-zinc-400 dark:text-zinc-600">
+            Tüm planları karşılaştırmak için{" "}
+            <Link href="/pricing" className="text-purple-600 dark:text-purple-400 hover:underline">fiyatlandırma sayfasına</Link> göz at.
+          </p>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="relative overflow-hidden py-32 px-6">
         <div className="absolute inset-0 bg-zinc-900 dark:bg-zinc-950" />

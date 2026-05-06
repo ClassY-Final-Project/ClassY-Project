@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+const PDF_LIMITS: Record<string, number> = { FREE: 1, GOLD: 5, PLATINUM: 10 };
+
 // POST /api/weeks/[weekId]/generate
 // PDF yükler, hem özet+flashcard hem quiz üretir, hepsini haftaya bağlar.
 export async function POST(
@@ -21,6 +23,22 @@ export async function POST(
     });
     if (!week || week.subject.studentId !== user.userId) {
       return NextResponse.json({ error: "Hafta bulunamadı." }, { status: 404 });
+    }
+
+    // Plan bazlı PDF limit kontrolü
+    const dbUser = await prisma.user.findUnique({ where: { id: user.userId }, select: { plan: true, planExpiresAt: true } });
+    const plan = (dbUser?.planExpiresAt && dbUser.planExpiresAt > new Date()) ? (dbUser.plan ?? "FREE") : "FREE";
+    const pdfLimit = PDF_LIMITS[plan] ?? 1;
+
+    // Bu haftaya kaç not yüklenmiş?
+    const weekNoteCount = await prisma.studyNote.count({ where: { weekId } });
+    if (weekNoteCount >= pdfLimit) {
+      return NextResponse.json({
+        error: `${plan} planında her hafta en fazla ${pdfLimit} PDF yükleyebilirsiniz.`,
+        code: "PDF_LIMIT_EXCEEDED",
+        plan,
+        limit: pdfLimit,
+      }, { status: 403 });
     }
 
     const formData = await request.formData();

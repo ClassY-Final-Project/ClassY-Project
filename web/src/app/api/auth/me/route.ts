@@ -63,3 +63,17 @@ export async function GET(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  const { user, error } = verifyToken(request);
+  if (error) return error;
+  if (!user) return NextResponse.json({ error: "Yetkisiz." }, { status: 401 });
+
+  try {
+    await prisma.user.delete({ where: { id: user.userId } });
+    return NextResponse.json({ message: "Hesap silindi." });
+  } catch (err) {
+    console.error("Delete account error:", err);
+    return NextResponse.json({ error: "Hesap silinemedi." }, { status: 500 });
+  }
+}

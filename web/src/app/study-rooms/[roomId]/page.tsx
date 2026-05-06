@@ -25,6 +25,7 @@ interface StudyRoom {
   scheduledEnd: string | null;
   createdById: string;
   createdBy: { id: string; fullName: string | null };
+  roomAccess: "PUBLIC" | "GOLD_PLUS" | "PLATINUM_ONLY";
   participants: Participant[];
   _count: { participants: number };
 }
@@ -433,6 +434,16 @@ export default function StudyRoomPage() {
           <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300/50 dark:border-green-800/50 px-2 py-0.5 rounded-full animate-pulse">
             {room._count.participants} aktif
           </span>
+          {room.roomAccess === "PLATINUM_ONLY" && (
+            <span className="text-xs bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border border-violet-300/50 dark:border-violet-700/40 px-2 py-0.5 rounded-full">
+              💎 Platinum Oda
+            </span>
+          )}
+          {room.roomAccess === "GOLD_PLUS" && (
+            <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300/50 dark:border-amber-700/40 px-2 py-0.5 rounded-full">
+              ⭐ Gold+ Oda
+            </span>
+          )}
           {room.isPrivate && (
             <button onClick={copyInviteLink} className="text-xs bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-300/40 dark:border-purple-800/30 px-2 py-0.5 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/40 transition-colors">
               🔗 Davet Linki

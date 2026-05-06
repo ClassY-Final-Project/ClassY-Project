@@ -15,6 +15,12 @@ enum Role {
   ADMIN
 }
 
+enum PlanType {
+  FREE
+  GOLD
+  PLATINUM
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -24,6 +30,8 @@ model User {
   bio          String?
   avatarUrl    String?
   iban         String?
+  plan         PlanType @default(FREE)
+  planExpiresAt DateTime?
   createdAt    DateTime @default(now())
 
   // Relations
@@ -43,6 +51,7 @@ model User {
   studyRoomsCreated       StudyRoom[]            @relation("StudyRoomsCreated")
   studyRoomParticipations StudyRoomParticipant[]
   studyRoomMessages       StudyRoomMessage[]
+  planSubscriptions       PlanSubscription[]
 }
 
 // --- 2. MARKETPLACE ---
@@ -331,6 +340,12 @@ enum StudyRoomType {
   SILENT
 }
 
+enum RoomAccess {
+  PUBLIC
+  GOLD_PLUS
+  PLATINUM_ONLY
+}
+
 model StudyRoom {
   id             String        @id @default(uuid())
   name           String
@@ -345,6 +360,7 @@ model StudyRoom {
   inviteCode     String?       @unique
   scheduledStart DateTime?
   scheduledEnd   DateTime?
+  roomAccess     RoomAccess    @default(PUBLIC)
   createdAt      DateTime      @default(now())
 
   createdBy    User                   @relation("StudyRoomsCreated", fields: [createdById], references: [id], onDelete: Cascade)
@@ -396,4 +412,21 @@ model Subscription {
   instructor User @relation("InstructorSubscribers", fields: [instructorId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, instructorId])
+}
+
+// --- 7. PLAN SUBSCRIPTIONS ---
+model PlanSubscription {
+  id          String   @id @default(uuid())
+  userId      String
+  plan        PlanType
+  amount      Decimal  @db.Decimal(10, 2)
+  cardLast4   String?
+  startsAt    DateTime @default(now())
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("plan_subscriptions")
 }

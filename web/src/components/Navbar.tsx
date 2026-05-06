@@ -73,6 +73,17 @@ export default function Navbar() {
 
   const isInstructor = user?.role === "INSTRUCTOR";
 
+  // Aktif plan hesapla
+  const activePlan = (user?.plan && user?.planExpiresAt && new Date(user.planExpiresAt) > new Date())
+    ? user.plan
+    : "FREE";
+
+  const planBadge = activePlan === "PLATINUM"
+    ? { label: "💎 Platinum", cls: "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300" }
+    : activePlan === "GOLD"
+    ? { label: "⭐ Gold", cls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" }
+    : { label: "Ücretsiz", cls: "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400" };
+
   const navLinks = user
     ? isInstructor
       ? [
@@ -90,6 +101,7 @@ export default function Navbar() {
           { href: "/live", label: "🔴 Canlı Ders" },
           { href: "/instructors", label: "👨‍🏫 Eğitmenler" },
           { href: "/courses", label: "📖 Kurslar" },
+          ...(activePlan !== "PLATINUM" ? [{ href: "/pricing", label: "⭐ Planını Yükselt", highlight: true }] : []),
         ]
     : [];
 
@@ -109,9 +121,11 @@ export default function Navbar() {
             <nav className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center justify-center gap-1">
               {navLinks.map(l => (
                 <Link key={l.href} href={l.href} className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap ${
-                  pathname === l.href || pathname.startsWith(l.href + "/")
-                    ? "bg-zinc-100 dark:bg-white/10 text-indigo-700 dark:text-indigo-300"
-                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-white/5"
+                  (l as any).highlight && pathname !== l.href
+                    ? "text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10"
+                    : pathname === l.href || pathname.startsWith(l.href + "/")
+                      ? "bg-zinc-100 dark:bg-white/10 text-indigo-700 dark:text-indigo-300"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-white/5"
                 }`}>
                   {l.label}
                 </Link>
@@ -191,6 +205,13 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Plan badge */}
+            {user && !isInstructor && (
+              <span className={`hidden md:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${planBadge.cls}`}>
+                {planBadge.label}
+              </span>
             )}
 
             {/* Desktop Auth */}
