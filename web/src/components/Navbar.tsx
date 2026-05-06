@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
@@ -111,8 +112,9 @@ export default function Navbar() {
         <div className="w-full px-6 py-4 flex items-center justify-between relative">
           {/* Logo (Left) */}
           <div className="flex-1 flex items-center justify-start">
-            <Link href={user?.role === "ADMIN" ? "/admin" : user ? "/dashboard" : "/"} className="flex items-center gap-2 group w-fit">
-              <span className="font-extrabold text-zinc-900 dark:text-white text-2xl tracking-tight transition-transform group-hover:scale-105">ClassY</span>
+            <Link href={user?.role === "ADMIN" ? "/admin" : user ? "/dashboard" : "/"} className="flex items-center gap-0 group w-fit">
+              <Image src="/logo.png" alt="ClassY Logo" width={44} height={44} className="w-11 h-11 object-contain" priority />
+              <span className="font-extrabold text-2xl tracking-tight transition-transform group-hover:scale-105" style={{ color: '#763fff' }}>classY</span>
             </Link>
           </div>
 

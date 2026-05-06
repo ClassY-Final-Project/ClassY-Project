@@ -124,7 +124,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-lg sm:text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto mb-12 leading-relaxed font-medium">
-            ClassY ile ders notlarını saniyeler içinde etkileşimli çalışma kartlarına ve quizlere dönüştür. En sevdiğin eğitmenlerin canlı yayınlarında yerini al.
+            classY ile ders notlarını saniyeler içinde etkileşimli çalışma kartlarına ve quizlere dönüştür. En sevdiğin eğitmenlerin canlı yayınlarında yerini al.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-5 w-full sm:w-auto">
@@ -276,7 +276,7 @@ export default function LandingPage() {
             Sınav stresini geride bırak.
           </h2>
           <p className="text-xl text-zinc-300 mb-12 font-medium">
-            ClassY'e katıl ve yapay zekanın gücüyle çalışmalarını hızlandır.
+            classY'e katıl ve yapay zekanın gücüyle çalışmalarını hızlandır.
           </p>
           <Link href="/register"
             className="inline-block px-10 py-5 bg-white text-zinc-900 font-bold rounded-2xl hover:scale-105 transition-all duration-300 text-lg shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] ring-4 ring-white/10">
@@ -287,7 +287,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="py-12 border-t border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 text-center text-zinc-500 font-medium">
-        <p>© 2026 ClassY. Geleceğin öğrenme platformu.</p>
+        <p>© 2026 classY. Geleceğin öğrenme platformu.</p>
       </footer>
 
       {/* Scroll to Top */}

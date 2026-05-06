@@ -33,8 +33,10 @@ export async function POST(
     // Bu haftaya kaç not yüklenmiş?
     const weekNoteCount = await prisma.studyNote.count({ where: { weekId } });
     if (weekNoteCount >= pdfLimit) {
+      // Plan adını Türkçeleştir
+      const planLabel = plan === "FREE" ? "Ücretsiz" : plan === "GOLD" ? "Gold" : plan === "PLATINUM" ? "Platinum" : plan;
       return NextResponse.json({
-        error: `${plan} planında her hafta en fazla ${pdfLimit} PDF yükleyebilirsiniz.`,
+        error: `${planLabel} planında her hafta en fazla ${pdfLimit} PDF yükleyebilirsiniz.`,
         code: "PDF_LIMIT_EXCEEDED",
         plan,
         limit: pdfLimit,
