@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/Toast";
 
@@ -17,14 +17,41 @@ interface Subscriber {
   email: string;
 }
 
+interface WrongQuestion {
+  questionText: string;
+  correctAnswer: string;
+  userAnswer: string | null;
+}
+
+interface SentStudent {
+  quizId: string;
+  student: { id: string; fullName: string | null; email: string };
+  score: number | null;
+  completed: boolean;
+  wrongQuestions: WrongQuestion[];
+}
+
+interface SentQuizGroup {
+  title: string;
+  subject: string;
+  createdAt: string;
+  students: SentStudent[];
+}
+
 type Step = "build" | "assign";
 type BuildMode = "manual" | "pdf";
+type PageTab = "create" | "sent";
 
 export default function InstructorQuizPage() {
   const { user, token, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [pageTab, setPageTab] = useState<PageTab>(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "sent" ? "sent" : "create"
+  );
 
   const [step, setStep] = useState<Step>("build");
   const [buildMode, setBuildMode] = useState<BuildMode>("manual");
@@ -47,10 +74,20 @@ export default function InstructorQuizPage() {
   const [assigning, setAssigning] = useState(false);
   const [done, setDone] = useState(false);
 
+  // Gönderilen quizler sekmesi
+  const [sentQuizGroups, setSentQuizGroups] = useState<SentQuizGroup[]>([]);
+  const [loadingSent, setLoadingSent] = useState(false);
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
+
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
     if (!loading && user && user.role === "STUDENT") router.replace("/dashboard");
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (searchParams.get("tab") === "sent") setPageTab("sent");
+  }, [searchParams]);
 
   useEffect(() => {
     if (!token) return;
@@ -65,6 +102,25 @@ export default function InstructorQuizPage() {
         setSubscribers(subs);
       });
   }, [token]);
+
+  useEffect(() => {
+    if (pageTab === "sent" && token) loadSentQuizzes();
+  }, [pageTab, token]); // eslint-disable-line
+
+  async function loadSentQuizzes() {
+    setLoadingSent(true);
+    try {
+      const res = await fetch("/api/instructor/quiz/sent", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const j = await res.json();
+      setSentQuizGroups(j.quizGroups || []);
+    } catch {
+      showToast("Gönderilen quizler yüklenemedi.", "error");
+    } finally {
+      setLoadingSent(false);
+    }
+  }
 
   // Manuel soru yönetimi
   function updateQuestion(qi: number, field: "question" | "answer", val: string) {
@@ -129,7 +185,7 @@ export default function InstructorQuizPage() {
         showToast("Quiz başarıyla gönderildi!", "success");
       } else {
         const j = await res.json();
-        showToast(j.error || "Gönderilemedi.", "error");
+        showToast(j.detail || j.error || "Gönderilemedi.", "error");
       }
     } catch {
       showToast("Sunucuya bağlanılamadı.", "error");
@@ -162,9 +218,9 @@ export default function InstructorQuizPage() {
             className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
             Yeni Quiz Oluştur
           </button>
-          <button onClick={() => router.push("/instructor/stats")}
+          <button onClick={() => { setDone(false); setPageTab("sent"); }}
             className="px-5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm text-zinc-600 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
-            İstatistikler
+            Gönderilenleri Gör
           </button>
         </div>
       </div>
@@ -175,9 +231,35 @@ export default function InstructorQuizPage() {
     <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <main className="max-w-3xl mx-auto px-6 py-10 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Quiz Oluştur & Ata</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Öğrencilerine quiz hazırla ve gönder</p>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Quiz Yönetimi</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Quiz oluştur, öğrencilere gönder ve sonuçları takip et</p>
         </div>
+
+        {/* Sekme Seçici */}
+        <div className="flex gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl">
+          {([["create", "✏️ Oluştur & Ata"], ["sent", "📊 Gönderdiğim Quizler"]] as const).map(([tab, label]) => (
+            <button key={tab} onClick={() => setPageTab(tab)}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${pageTab === tab ? "bg-white dark:bg-zinc-700 text-indigo-700 dark:text-indigo-300 shadow-sm" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── GÖNDERILEN QUIZLER SEKMESİ ── */}
+        {pageTab === "sent" && (
+          <SentQuizzesView
+            groups={sentQuizGroups}
+            loading={loadingSent}
+            onRefresh={loadSentQuizzes}
+            expandedGroup={expandedGroup}
+            setExpandedGroup={setExpandedGroup}
+            expandedStudent={expandedStudent}
+            setExpandedStudent={setExpandedStudent}
+          />
+        )}
+
+        {pageTab === "create" && (
+          <>
 
         {/* Adım indikatörü */}
         <div className="flex items-center gap-3">
@@ -383,7 +465,173 @@ export default function InstructorQuizPage() {
             </div>
           </div>
         )}
+        </>
+        )}
       </main>
+    </div>
+  );
+}
+
+// ── Gönderilen Quizler Bileşeni ──
+function SentQuizzesView({
+  groups,
+  loading,
+  onRefresh,
+  expandedGroup,
+  setExpandedGroup,
+  expandedStudent,
+  setExpandedStudent,
+}: {
+  groups: SentQuizGroup[];
+  loading: boolean;
+  onRefresh: () => void;
+  expandedGroup: string | null;
+  setExpandedGroup: (v: string | null) => void;
+  expandedStudent: string | null;
+  setExpandedStudent: (v: string | null) => void;
+}) {
+  if (loading) return (
+    <div className="flex justify-center py-16">
+      <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+    </div>
+  );
+
+  if (groups.length === 0) return (
+    <div className="text-center py-16">
+      <p className="text-4xl mb-3">📭</p>
+      <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Henüz quiz göndermediniz.</p>
+      <p className="text-zinc-400 text-xs mt-1">Quiz oluşturup öğrencilere gönderin.</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">{groups.length} farklı quiz gönderildi</p>
+        <button onClick={onRefresh} className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">↻ Yenile</button>
+      </div>
+
+      {groups.map((group, gi) => {
+        const isGroupOpen = expandedGroup === group.title + gi;
+        const completedCount = group.students.filter(s => s.completed).length;
+        const avgScore = completedCount > 0
+          ? Math.round(group.students.filter(s => s.score !== null).reduce((sum, s) => sum + (s.score ?? 0), 0) / completedCount)
+          : null;
+
+        return (
+          <div key={gi} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+            {/* Quiz başlık satırı */}
+            <button
+              onClick={() => setExpandedGroup(isGroupOpen ? null : group.title + gi)}
+              className="w-full flex items-center gap-4 p-5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm shrink-0">
+                {group.title.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-zinc-900 dark:text-white text-sm truncate">{group.title}</p>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  {new Date(group.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}
+                  {" · "}
+                  {completedCount}/{group.students.length} tamamlandı
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                {avgScore !== null && (
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                    avgScore >= 70 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                    : avgScore >= 50 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                    : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                  }`}>
+                    Ort. %{avgScore}
+                  </span>
+                )}
+                <svg className={`w-4 h-4 text-zinc-400 transition-transform ${isGroupOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+
+            {/* Öğrenci listesi */}
+            {isGroupOpen && (
+              <div className="border-t border-zinc-100 dark:border-zinc-800">
+                {group.students.map((s, si) => {
+                  const studentKey = group.title + gi + s.student.id;
+                  const isStudentOpen = expandedStudent === studentKey;
+                  return (
+                    <div key={si} className="border-b border-zinc-50 dark:border-zinc-800/50 last:border-0">
+                      <button
+                        onClick={() => setExpandedStudent(isStudentOpen ? null : studentKey)}
+                        className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 font-bold text-xs shrink-0">
+                          {(s.student.fullName || s.student.email).charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                            {s.student.fullName || s.student.email}
+                          </p>
+                          <p className="text-xs text-zinc-400 truncate">{s.student.email}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {s.completed ? (
+                            <>
+                              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                                (s.score ?? 0) >= 70 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                : (s.score ?? 0) >= 50 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                              }`}>
+                                %{s.score}
+                              </span>
+                              {s.wrongQuestions.length > 0 && (
+                                <span className="text-xs text-zinc-400">{s.wrongQuestions.length} yanlış</span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400">Bekleniyor</span>
+                          )}
+                          {s.completed && s.wrongQuestions.length > 0 && (
+                            <svg className={`w-3.5 h-3.5 text-zinc-400 transition-transform ${isStudentOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Yanlış sorular detayı */}
+                      {isStudentOpen && s.wrongQuestions.length > 0 && (
+                        <div className="px-5 pb-4 space-y-2">
+                          <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-2">Yanlış Cevaplanan Sorular</p>
+                          {s.wrongQuestions.map((wq, wi) => (
+                            <div key={wi} className="bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-xl p-3">
+                              <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 mb-2">{wi + 1}. {wq.questionText}</p>
+                              <div className="flex gap-4 text-xs">
+                                <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
+                                  <span className="font-semibold">Öğrenci:</span> {wq.userAnswer ?? "—"}
+                                </span>
+                                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                                  <span className="font-semibold">Doğru:</span> {wq.correctAnswer}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {isStudentOpen && s.completed && s.wrongQuestions.length === 0 && (
+                        <div className="px-5 pb-4">
+                          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-3 text-center">
+                            <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">🎉 Tüm soruları doğru yanıtladı!</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

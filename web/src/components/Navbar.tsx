@@ -11,7 +11,7 @@ export default function Navbar() {
   const [dark, setDark] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [unread, setUnread] = useState(0);
-  const [notifications, setNotifications] = useState<{ id: string; message: string; isRead: boolean; createdAt: string }[]>([]);
+  const [notifications, setNotifications] = useState<{ id: string; message: string; isRead: boolean; createdAt: string; link?: string | null }[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
 
   useEffect(() => {
@@ -157,12 +157,36 @@ export default function Navbar() {
                         <div className="py-10 text-center">
                           <p className="text-sm text-zinc-400 font-medium">Yeni bildiriminiz yok</p>
                         </div>
-                      ) : notifications.map((n) => (
-                        <div key={n.id} className={`px-5 py-4 border-b border-zinc-50 dark:border-white/5 last:border-0 ${n.isRead ? "opacity-70" : "bg-indigo-50/50 dark:bg-indigo-500/10"}`}>
-                          <p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium leading-relaxed">{n.message}</p>
-                          <p className="text-xs text-zinc-400 mt-2 font-medium">{new Date(n.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
-                        </div>
-                      ))}
+                      ) : notifications.map((n) => {
+                        const inner = (
+                          <div className="flex items-start gap-2 flex-1 min-w-0">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium leading-relaxed">{n.message}</p>
+                              <p className="text-xs text-zinc-400 mt-1 font-medium">{new Date(n.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+                            </div>
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteNotification(n.id); }}
+                              className="shrink-0 p-1 text-zinc-300 hover:text-red-500 transition-colors mt-0.5"
+                              title="Bildirimi sil"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        );
+                        return (
+                          <div key={n.id} className={`px-4 py-3.5 border-b border-zinc-50 dark:border-white/5 last:border-0 ${n.isRead ? "opacity-70" : "bg-indigo-50/50 dark:bg-indigo-500/10"}`}>
+                            {n.link ? (
+                              <Link href={n.link} onClick={() => setNotifOpen(false)} className="flex items-start gap-2 hover:opacity-80 transition-opacity">
+                                {inner}
+                              </Link>
+                            ) : (
+                              <div className="flex items-start gap-2">{inner}</div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

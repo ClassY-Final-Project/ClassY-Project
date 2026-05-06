@@ -43,21 +43,28 @@ export async function POST(
 
     const PYTHON_BASE = "http://127.0.0.1:8000";
 
-    const [notesRes, quizRes] = await Promise.all([
-      fetch(`${PYTHON_BASE}/generate-study-notes`, { method: "POST", body: buildForm() }),
-      fetch(`${PYTHON_BASE}/generate-quiz`, {
-        method: "POST",
-        body: buildForm({ question_count: String(questionCount) }),
-      }),
-    ]);
+    // Önce notları üret, ardından quiz — paralel istek Gemini 503 hatasına yol açıyor
+    const notesRes = await fetch(`${PYTHON_BASE}/generate-study-notes`, {
+      method: "POST",
+      body: buildForm(),
+    });
 
-    if (!notesRes.ok || !quizRes.ok) {
-      const errText = !notesRes.ok ? await notesRes.text() : await quizRes.text();
-      console.error("AI motor hatası:", errText);
-      return NextResponse.json(
-        { error: "Yapay zeka motoru yanıt vermedi." },
-        { status: 502 }
-      );
+    if (!notesRes.ok) {
+      const errText = await notesRes.text();
+      console.error("AI motor hatası (notlar):", errText);
+      return NextResponse.json({ error: "Çalışma notları üretilemedi." }, { status: 502 });
+    }
+
+    // Quiz her zaman tam 10 soru üretir
+    const quizRes = await fetch(`${PYTHON_BASE}/generate-quiz`, {
+      method: "POST",
+      body: buildForm({ question_count: "10" }),
+    });
+
+    if (!quizRes.ok) {
+      const errText = await quizRes.text();
+      console.error("AI motor hatası (quiz):", errText);
+      return NextResponse.json({ error: "Quiz üretilemedi." }, { status: 502 });
     }
 
     const notesData = await notesRes.json();

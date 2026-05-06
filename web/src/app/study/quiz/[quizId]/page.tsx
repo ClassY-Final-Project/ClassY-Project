@@ -156,11 +156,6 @@ export default function QuizPage() {
               Çalışma Alanı
             </Link>
           </div>
-
-          <Link href="/dashboard"
-            className="block text-center text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
-            Çalışma alanına dön →
-          </Link>
         </main>
       </div>
     );

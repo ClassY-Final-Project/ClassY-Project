@@ -46,12 +46,36 @@ export async function POST(request: Request) {
       )
     );
 
+    // Atayan eğitmenin adını çek
+    const instructor = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { fullName: true, email: true },
+    });
+    const instructorName = instructor?.fullName || instructor?.email || "Eğitmen";
+
+    // Her öğrenciye bildirim gönder
+    await Promise.all(
+      created.map((quiz) =>
+        prisma.notification.create({
+          data: {
+            userId: quiz.studentId,
+            type: "QUIZ_ASSIGNED",
+            message: `${instructorName} sana "${title.trim()}" adlı yeni bir quiz gönderdi.`,
+            link: `/study/quiz/${quiz.id}`,
+          },
+        })
+      )
+    );
+
     return NextResponse.json({
       message: `Quiz ${created.length} öğrenciye başarıyla atandı.`,
       count: created.length,
     });
   } catch (err: any) {
     console.error("Quiz Atama Hatası:", err);
-    return NextResponse.json({ error: "Quiz atanırken hata oluştu." }, { status: 500 });
+    return NextResponse.json({
+      error: "Quiz atanırken hata oluştu.",
+      detail: err?.message ?? String(err),
+    }, { status: 500 });
   }
 }

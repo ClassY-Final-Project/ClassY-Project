@@ -49,9 +49,20 @@ export default function DashboardPage() {
 
   const [openDersler, setOpenDersler] = useState(true);
   const [openKurslar, setOpenKurslar] = useState(false);
+  const [openOdevler, setOpenOdevler] = useState(true);
 
   const [subjects, setSubjects] = useState<SubjectFull[]>([]);
   const [myCourses, setMyCourses] = useState<MyCourse[]>([]);
+
+  interface AssignedQuiz {
+    id: string;
+    title: string;
+    subject: string;
+    score: number | null;
+    createdAt: string;
+    instructor: { fullName: string | null; email: string };
+  }
+  const [assignedQuizzes, setAssignedQuizzes] = useState<AssignedQuiz[]>([]);
   const [fetching, setFetching] = useState(true);
 
   const [openSubjectId, setOpenSubjectId] = useState<string | null>(null);
@@ -87,9 +98,9 @@ export default function DashboardPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !token) return;
     loadAll();
-  }, [user]);
+  }, [user, token]); // eslint-disable-line
 
   useEffect(() => {
     if (activeView === "karne") loadStudyStats();
@@ -100,6 +111,15 @@ export default function DashboardPage() {
     const [s, c] = await Promise.all([getSubjects(), getMyCourses()]);
     if (s.ok) setSubjects(s.subjects || []);
     if (c.ok) setMyCourses(c.courses || []);
+    if (token) {
+      try {
+        const r = await fetch("/api/instructor/quiz/assigned", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const j = await r.json();
+        setAssignedQuizzes(j.quizzes || []);
+      } catch { /* sessizce geç */ }
+    }
     setFetching(false);
   }
 
@@ -248,7 +268,7 @@ export default function DashboardPage() {
 
             {activeView === "dashboard" && (
               <>
-                <div className="mb-2">
+                <div className="mb-4">
                   <div className="flex items-center justify-between px-2 py-2">
                     <button
                       onClick={() => setOpenDersler((v) => !v)}
@@ -299,7 +319,7 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                <div>
+                <div className="mb-4">
                   <button
                     onClick={() => setOpenKurslar((v) => !v)}
                     className="w-full flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 px-2 py-2"
@@ -326,6 +346,67 @@ export default function DashboardPage() {
                         >
                           🎓 {c.title}
                         </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Ödevler */}
+                <div className="mb-4">
+                  <button
+                    onClick={() => setOpenOdevler((v) => !v)}
+                    className="w-full flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 px-2 py-2"
+                  >
+                    <ChevronIcon open={openOdevler} />
+                    Ödevlerim
+                    <span className="text-xs text-zinc-400 font-normal">({assignedQuizzes.length})</span>
+                    {(() => { const unsolved = assignedQuizzes.filter(q => q.score === null).length; return unsolved > 0 ? (
+                      <span className="ml-auto text-xs bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-semibold px-1.5 py-0.5 rounded-full">
+                        {unsolved}
+                      </span>
+                    ) : null; })()}
+                  </button>
+                  {openOdevler && (
+                    <div className="mt-1 space-y-0.5">
+                      {assignedQuizzes.length === 0 && (
+                        <p className="text-xs text-zinc-400 px-3 py-2">Henüz atanmış ödev yok.</p>
+                      )}
+                      {assignedQuizzes.map((q) => (
+                        <div key={q.id} className="group flex items-center gap-1 px-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors">
+                          <Link
+                            href={`/study/quiz/${q.id}`}
+                            className="flex items-start gap-2 py-2 pl-2 flex-1 min-w-0 text-sm text-zinc-600 dark:text-zinc-400"
+                          >
+                            <span className="text-base shrink-0">📋</span>
+                            <span className="flex-1 min-w-0">
+                              <span className="block truncate text-xs font-medium">{q.title}</span>
+                              {q.score !== null ? (
+                                <span className={`text-[10px] font-semibold ${
+                                  q.score >= 70 ? "text-emerald-600 dark:text-emerald-400" :
+                                  q.score >= 50 ? "text-amber-500" : "text-red-500"
+                                }`}>%{q.score}</span>
+                              ) : (
+                                <span className="text-[10px] text-violet-500 font-medium">Çözülmedi</span>
+                              )}
+                            </span>
+                          </Link>
+                          {q.score !== null && (
+                            <button
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                if (!token) return;
+                                const res = await fetch(`/api/quizzes/${q.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+                                if (res.ok) setAssignedQuizzes(prev => prev.filter(x => x.id !== q.id));
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-zinc-300 hover:text-red-500 transition-all shrink-0"
+                              title="Ödevi sil"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}

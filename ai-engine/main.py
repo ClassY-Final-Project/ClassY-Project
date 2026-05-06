@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import PyPDF2
 import io
 import json
+import time
 
 load_dotenv()
 
@@ -28,6 +29,23 @@ app.add_middleware(
 
 class PromptRequest(BaseModel):
     text: str
+
+def generate_with_retry(prompt: str, model: str = "gemini-2.5-flash", max_retries: int = 3, initial_delay: int = 8):
+    """503 UNAVAILABLE hatalarında exponential backoff ile yeniden dener."""
+    last_error: Exception = Exception("Bilinmeyen hata")
+    for attempt in range(max_retries):
+        try:
+            return client.models.generate_content(model=model, contents=prompt)
+        except Exception as e:
+            last_error = e
+            err = str(e)
+            if ("503" in err or "UNAVAILABLE" in err) and attempt < max_retries - 1:
+                delay = initial_delay * (2 ** attempt)  # 8s, 16s, 32s
+                print(f"[Gemini 503] Deneme {attempt + 1}/{max_retries} - {delay}s sonra tekrar deneniyor...")
+                time.sleep(delay)
+            else:
+                raise
+    raise last_error
 
 @app.get("/")
 def read_root():
@@ -97,10 +115,7 @@ async def generate_quiz(
         {extracted_text}
         """
 
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt
-        )
+        response = generate_with_retry(prompt)
 
         # JSON temizleme işlemini daha sağlam hale getirelim
         content_text = response.text or ""
@@ -181,10 +196,7 @@ async def generate_study_notes(file: UploadFile = File(...)):
         """
 
         # 3. Gemini'a gönder
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt
-        )
+        response = generate_with_retry(prompt)
         
         # 4. JSON Temizliği
         # JSON temizleme işlemini daha sağlam hale getirelim

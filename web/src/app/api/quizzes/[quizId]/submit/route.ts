@@ -75,6 +75,23 @@ export async function POST(
       data: { score: finalScore },
     });
 
+    // Eğitmen tarafından atanmış bir quizse, eğitmene bildirim gönder
+    if (quiz.assignedByInstructorId) {
+      const student = await prisma.user.findUnique({
+        where: { id: user.userId },
+        select: { fullName: true, email: true },
+      });
+      const studentName = student?.fullName || student?.email || "Öğrenci";
+      await prisma.notification.create({
+        data: {
+          userId: quiz.assignedByInstructorId,
+          type: "QUIZ_COMPLETED",
+          message: `${studentName}, "${quiz.title}" quizini tamamladı. Skor: %${finalScore}`,
+          link: `/instructor/quiz?tab=sent`,
+        },
+      });
+    }
+
     return NextResponse.json(
       {
         message: "Sınav başarıyla tamamlandı!",
