@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
+import GlobalSearch from "./GlobalSearch";
 
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
@@ -134,6 +135,9 @@ export default function Navbar() {
 
           {/* Actions (Right) */}
           <div className="flex items-center justify-end gap-3">
+            {/* Global Arama */}
+            {user && <GlobalSearch />}
+
             {/* Dark mode toggle */}
             <button onClick={toggleDark} title={dark ? "Açık mod" : "Gece modu"}
               className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors">
