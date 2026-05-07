@@ -4,12 +4,14 @@ from pydantic import BaseModel
 from google import genai
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 import PyPDF2
 import io
 import json
+import re
 import time
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
@@ -30,12 +32,34 @@ app.add_middleware(
 class PromptRequest(BaseModel):
     text: str
 
-def generate_with_retry(prompt: str, model: str = "gemini-2.5-flash", max_retries: int = 3, initial_delay: int = 8):
+def extract_json(text: str) -> str:
+    """JSON bloğunu metinden güvenli biçimde çıkarır."""
+    # ```json ... ``` bloğu
+    m = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
+    if m:
+        return m.group(1).strip()
+    # ``` ... ``` bloğu
+    m = re.search(r"```\s*(.*?)\s*```", text, re.DOTALL)
+    if m:
+        return m.group(1).strip()
+    # İlk { ... son } arasını al (fallback)
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        return text[start:end + 1].strip()
+    return text.strip()
+
+
+def generate_with_retry(prompt: str, model: str = "gemini-2.5-flash", max_retries: int = 3, initial_delay: int = 8, json_mode: bool = False):
     """503 UNAVAILABLE hatalarında exponential backoff ile yeniden dener."""
+    config = {"response_mime_type": "application/json"} if json_mode else None
     last_error: Exception = Exception("Bilinmeyen hata")
     for attempt in range(max_retries):
         try:
-            return client.models.generate_content(model=model, contents=prompt)
+            kwargs: dict = {"model": model, "contents": prompt}
+            if config:
+                kwargs["config"] = config
+            return client.models.generate_content(**kwargs)
         except Exception as e:
             last_error = e
             err = str(e)
@@ -115,17 +139,9 @@ async def generate_quiz(
         {extracted_text}
         """
 
-        response = generate_with_retry(prompt)
+        response = generate_with_retry(prompt, json_mode=True)
 
-        # JSON temizleme işlemini daha sağlam hale getirelim
-        content_text = response.text or ""
-        if "```json" in content_text:
-            clean_text = content_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in content_text:
-            clean_text = content_text.split("```")[1].split("```")[0].strip()
-        else:
-            clean_text = content_text.strip()
-
+        clean_text = extract_json(response.text or "")
         parsed = json.loads(clean_text)
         # Eski format (düz dizi) ile geriye dönük uyumluluk
         if isinstance(parsed, list):
@@ -196,18 +212,10 @@ async def generate_study_notes(file: UploadFile = File(...)):
         """
 
         # 3. Gemini'a gönder
-        response = generate_with_retry(prompt)
+        response = generate_with_retry(prompt, json_mode=True)
         
         # 4. JSON Temizliği
-        # JSON temizleme işlemini daha sağlam hale getirelim
-        content_text = response.text or ""
-        if "```json" in content_text:
-            clean_text = content_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in content_text:
-            clean_text = content_text.split("```")[1].split("```")[0].strip()
-        else:
-            clean_text = content_text.strip()
-            
+        clean_text = extract_json(response.text or "")
         notes_data = json.loads(clean_text)
         subject = notes_data.pop("subject", "Genel")
 

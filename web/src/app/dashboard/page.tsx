@@ -50,7 +50,7 @@ export default function DashboardPage() {
 
   const [openDersler, setOpenDersler] = useState(true);
   const [openKurslar, setOpenKurslar] = useState(false);
-  const [openOdevler, setOpenOdevler] = useState(true);
+  const [openOdevler, setOpenOdevler] = useState(false);
 
   const [subjects, setSubjects] = useState<SubjectFull[]>([]);
   const [myCourses, setMyCourses] = useState<MyCourse[]>([]);
@@ -170,6 +170,27 @@ export default function DashboardPage() {
     setFile(null);
     setError(null);
     setFlipped(new Set());
+  }
+
+  const PDF_LIMITS: Record<string, number> = { FREE: 1, GOLD: 5, PLATINUM: 10 };
+
+  function handleNewUploadClick(weekId: string) {
+    const activePlan =
+      user?.planExpiresAt && new Date(user.planExpiresAt) > new Date()
+        ? (user.plan ?? "FREE")
+        : "FREE";
+    const limit = PDF_LIMITS[activePlan] ?? 1;
+    const currentCount = weekDetail?.notes.length ?? 0;
+    if (currentCount >= limit) {
+      const planLabel =
+        activePlan === "FREE" ? "Ücretsiz" : activePlan === "GOLD" ? "Gold" : "Platinum";
+      setUpgradeModal({
+        title: "PDF Yükleme Limitine Ulaştın",
+        description: `${planLabel} planında her hafta en fazla ${limit} PDF yükleyebilirsiniz. Daha fazla yüklemek için planını yükselt.`,
+      });
+      return;
+    }
+    startNewUpload(weekId);
   }
 
   function handleFileSelect(f: File | null) {
@@ -611,7 +632,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="p-2">
                   <button
-                    onClick={() => startNewUpload(openWeekId)}
+                    onClick={() => handleNewUploadClick(openWeekId)}
                     className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 text-sm mb-2 transition-colors ${
                       view && !view.noteId
                         ? "bg-indigo-600 text-white"
