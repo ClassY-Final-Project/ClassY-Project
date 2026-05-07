@@ -46,7 +46,19 @@ export async function GET(request: Request) {
         (a, b) => new Date(b.endedAt || b.joinedAt || b.createdAt).getTime() - new Date(a.endedAt || a.joinedAt || a.createdAt).getTime()
       );
 
-      return NextResponse.json({ rooms: allRooms });
+      // Geçmiş odalar için de abonelik bilgisi ekle
+      const histInstructorIds = [...new Set(allRooms.map((r: any) => r.instructorId as string))];
+      const histSubs = await (prisma as any).subscription.findMany({
+        where: { studentId: user.userId, instructorId: { in: histInstructorIds } },
+        select: { instructorId: true },
+      });
+      const histSubSet = new Set(histSubs.map((s: any) => s.instructorId as string));
+      const allRoomsWithSub = allRooms.map((r: any) => ({
+        ...r,
+        isSubscribed: r.instructorId === user.userId || histSubSet.has(r.instructorId),
+      }));
+
+      return NextResponse.json({ rooms: allRoomsWithSub });
     }
 
     const where: any = {};
@@ -64,7 +76,20 @@ export async function GET(request: Request) {
       orderBy: [{ status: "asc" }, { scheduledAt: "asc" }, { createdAt: "desc" }],
     });
 
-    return NextResponse.json({ rooms });
+    // Her oda için mevcut kullanıcının eğitmene abonelik durumunu ekle
+    const instructorIds = [...new Set(rooms.map((r: any) => r.instructorId as string))];
+    const subscriptions = await (prisma as any).subscription.findMany({
+      where: { studentId: user.userId, instructorId: { in: instructorIds } },
+      select: { instructorId: true },
+    });
+    const subscribedSet = new Set(subscriptions.map((s: any) => s.instructorId as string));
+
+    const roomsWithSub = rooms.map((r: any) => ({
+      ...r,
+      isSubscribed: r.instructorId === user.userId || subscribedSet.has(r.instructorId),
+    }));
+
+    return NextResponse.json({ rooms: roomsWithSub });
   } catch (err) {
     console.error("Live rooms GET hatası:", err);
     return NextResponse.json({ error: "Sunucu hatası." }, { status: 500 });

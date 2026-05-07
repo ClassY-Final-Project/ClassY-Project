@@ -17,11 +17,13 @@ interface LiveRoom {
   endedAt: string | null;
   createdAt: string;
   joinedAt?: string | null;
+  isSubscribed: boolean;
   instructor: { id: string; fullName: string | null; email: string };
   _count?: { participants: number };
 }
 
 type Tab = "live" | "scheduled" | "history";
+type SubFilter = "all" | "subscribed" | "unsubscribed";
 
 export default function LiveRoomsPage() {
   const { user, loading } = useAuth();
@@ -29,10 +31,12 @@ export default function LiveRoomsPage() {
   const searchParams = useSearchParams();
 
   const [tab, setTab] = useState<Tab>((searchParams.get("tab") as Tab) || "live");
+  const [subFilter, setSubFilter] = useState<SubFilter>("all");
   const [endedNotice, setEndedNotice] = useState(searchParams.get("ended") === "1");
   const [rooms, setRooms] = useState<LiveRoom[]>([]);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
+  const [subscribeAlert, setSubscribeAlert] = useState<{ instructorId: string; instructorName: string } | null>(null);
 
   // Oda oluşturma formu
   const [showForm, setShowForm] = useState(false);
@@ -48,6 +52,7 @@ export default function LiveRoomsPage() {
 
   useEffect(() => {
     if (!user) return;
+    setSubFilter("all");
     loadRooms();
   }, [user, tab]);
 
@@ -160,7 +165,7 @@ export default function LiveRoomsPage() {
         )}
 
         {/* Sekmeler */}
-        <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 gap-1 mb-6 w-fit">
+        <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 gap-1 mb-4 w-fit">
           {tabs.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.id ? "bg-white dark:bg-zinc-700 text-indigo-700 dark:text-indigo-400 shadow-sm" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"}`}>
@@ -168,6 +173,26 @@ export default function LiveRoomsPage() {
             </button>
           ))}
         </div>
+
+        {/* Abonelik filtresi */}
+        {!isInstructor && (
+          <div className="flex items-center gap-2 mb-6 flex-wrap">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 mr-1">Filtrele:</span>
+            {(["all", "subscribed", "unsubscribed"] as SubFilter[]).map(f => (
+              <button
+                key={f}
+                onClick={() => setSubFilter(f)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                  subFilter === f
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400"
+                }`}
+              >
+                {f === "all" ? "Tümü" : f === "subscribed" ? "✓ Abone Olduklarım" : "🔒 Abone Olmadıklarım"}
+              </button>
+            ))}
+          </div>
+        )}
 
         {endedNotice && (
           <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-700 dark:text-amber-400 text-sm flex items-center justify-between">
@@ -183,87 +208,150 @@ export default function LiveRoomsPage() {
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
           </div>
-        ) : rooms.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-5xl mb-4">{tab === "live" ? "🎥" : tab === "scheduled" ? "📅" : "📂"}</div>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-              {tab === "live" ? "Şu an canlı ders yok." : tab === "scheduled" ? "Planlanmış ders yok." : "Henüz katıldığın ders yok."}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {rooms.map(room => (
-              <div key={room.id} className="bg-white dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">{room.name}</p>
-                    <p className="text-xs text-zinc-400 mt-0.5">
-                      {room.instructor.fullName || room.instructor.email}
+        ) : (() => {
+          const visibleRooms = rooms.filter(room => {
+            if (isInstructor) return true;
+            if (subFilter === "subscribed") return room.isSubscribed;
+            if (subFilter === "unsubscribed") return !room.isSubscribed;
+            return true;
+          });
+          return visibleRooms.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="text-5xl mb-4">{tab === "live" ? "🎥" : tab === "scheduled" ? "📅" : "📂"}</div>
+              <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                {subFilter !== "all"
+                  ? "Bu filtreye uyan ders yok."
+                  : tab === "live" ? "Şu an canlı ders yok." : tab === "scheduled" ? "Planlanmış ders yok." : "Henüz katıldığın ders yok."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {visibleRooms.map(room => (
+                <div key={room.id} className={`bg-white dark:bg-zinc-800/60 border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all ${
+                  !isInstructor && !room.isSubscribed
+                    ? "border-zinc-200 dark:border-zinc-700 opacity-80"
+                    : "border-zinc-100 dark:border-zinc-800"
+                }`}>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">{room.name}</p>
+                      <p className="text-xs text-zinc-400 mt-0.5">
+                        {room.instructor.fullName || room.instructor.email}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {!isInstructor && !room.isSubscribed && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-zinc-100 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
+                          🔒 Abone Değil
+                        </span>
+                      )}
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        room.status === "LIVE" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                        room.status === "SCHEDULED" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" :
+                        "bg-zinc-100 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400"
+                      }`}>
+                        {room.status === "LIVE" ? "🔴 Canlı" : room.status === "SCHEDULED" ? "📅 Planlandı" : "✓ Sona Erdi"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Zamanlama bilgileri */}
+                  {room.scheduledAt && room.status === "SCHEDULED" && (
+                    <p className="text-xs text-zinc-400 mb-3">
+                      📅 {new Date(room.scheduledAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
                     </p>
-                  </div>
-                  <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
-                    room.status === "LIVE" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
-                    room.status === "SCHEDULED" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" :
-                    "bg-zinc-100 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400"
-                  }`}>
-                    {room.status === "LIVE" ? "🔴 Canlı" : room.status === "SCHEDULED" ? "📅 Planlandı" : "✓ Sona Erdi"}
-                  </span>
-                </div>
-
-                {/* Zamanlama bilgileri */}
-                {room.scheduledAt && room.status === "SCHEDULED" && (
-                  <p className="text-xs text-zinc-400 mb-3">
-                    📅 {new Date(room.scheduledAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                )}
-                {room.status === "ENDED" && (
-                  <div className="mb-3 space-y-1">
-                    {room.startedAt && (
-                      <p className="text-xs text-zinc-400">
-                        📅 {new Date(room.startedAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                      </p>
-                    )}
-                    {room.startedAt && room.endedAt && (
-                      <p className="text-xs text-zinc-400">
-                        ⏱ Süre: {(() => {
-                          const diffMs = new Date(room.endedAt).getTime() - new Date(room.startedAt).getTime();
-                          const totalMin = Math.floor(diffMs / 60000);
-                          const h = Math.floor(totalMin / 60);
-                          const m = totalMin % 60;
-                          return h > 0 ? `${h} sa ${m} dk` : `${m} dk`;
-                        })()}
-                      </p>
-                    )}
-                    {room.joinedAt && (
-                      <p className="text-xs text-indigo-400/70">✓ Katıldın</p>
-                    )}
-                  </div>
-                )}
-                {room.status === "LIVE" && room.joinedAt && (
-                  <p className="text-xs text-zinc-400 mb-3">
-                    Daha önce katıldın
-                  </p>
-                )}
-
-                <div className="flex gap-2 mt-3">
-                  {room.status === "LIVE" && (
-                    <Link href={`/live/${room.id}`}
-                      className="flex-1 text-center py-2 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors">
-                      Katıl
-                    </Link>
-                  )}
-                  {room.status === "SCHEDULED" && isInstructor && room.instructor.id === user?.id && (
-                    <button onClick={() => handleStart(room.id)}
-                      className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition-colors">
-                      Başlat
-                    </button>
                   )}
                   {room.status === "ENDED" && (
-                    <span className="text-xs text-zinc-500 py-2 italic">Ders sona erdi</span>
+                    <div className="mb-3 space-y-1">
+                      {room.startedAt && (
+                        <p className="text-xs text-zinc-400">
+                          📅 {new Date(room.startedAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      )}
+                      {room.startedAt && room.endedAt && (
+                        <p className="text-xs text-zinc-400">
+                          ⏱ Süre: {(() => {
+                            const diffMs = new Date(room.endedAt).getTime() - new Date(room.startedAt).getTime();
+                            const totalMin = Math.floor(diffMs / 60000);
+                            const h = Math.floor(totalMin / 60);
+                            const m = totalMin % 60;
+                            return h > 0 ? `${h} sa ${m} dk` : `${m} dk`;
+                          })()}
+                        </p>
+                      )}
+                      {room.joinedAt && (
+                        <p className="text-xs text-indigo-400/70">✓ Katıldın</p>
+                      )}
+                    </div>
                   )}
+                  {room.status === "LIVE" && room.joinedAt && (
+                    <p className="text-xs text-zinc-400 mb-3">Daha önce katıldın</p>
+                  )}
+
+                  <div className="flex gap-2 mt-3">
+                    {room.status === "LIVE" && (
+                      !isInstructor && !room.isSubscribed ? (
+                        <button
+                          onClick={() => setSubscribeAlert({ instructorId: room.instructor.id, instructorName: room.instructor.fullName || room.instructor.email })}
+                          className="flex-1 text-center py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg text-xs font-medium hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
+                        >
+                          🔒 Katıl
+                        </button>
+                      ) : (
+                        <Link href={`/live/${room.id}`}
+                          className="flex-1 text-center py-2 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors">
+                          Katıl
+                        </Link>
+                      )
+                    )}
+                    {room.status === "SCHEDULED" && !isInstructor && !room.isSubscribed && (
+                      <button
+                        onClick={() => setSubscribeAlert({ instructorId: room.instructor.id, instructorName: room.instructor.fullName || room.instructor.email })}
+                        className="flex-1 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg text-xs font-medium hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
+                      >
+                        🔒 Abone Ol
+                      </button>
+                    )}
+                    {room.status === "SCHEDULED" && isInstructor && room.instructor.id === user?.id && (
+                      <button onClick={() => handleStart(room.id)}
+                        className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition-colors">
+                        Başlat
+                      </button>
+                    )}
+                    {room.status === "ENDED" && (
+                      <span className="text-xs text-zinc-500 py-2 italic">Ders sona erdi</span>
+                    )}
+                  </div>
                 </div>
+              ))}
+            </div>
+          );
+        })()}
+
+        {/* Abonelik uyarı modali */}
+        {subscribeAlert && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-7 shadow-xl max-w-sm w-full mx-4 text-center">
+              <div className="text-4xl mb-4">🔒</div>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">Abonelik Gerekli</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+                Bu canlı derse katılmak için <span className="font-semibold text-zinc-700 dark:text-zinc-200">{subscribeAlert.instructorName}</span> eğitmenine abone olman gerekiyor.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setSubscribeAlert(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 transition-colors"
+                >
+                  Şimdi Değil
+                </button>
+                <button
+                  onClick={() => { setSubscribeAlert(null); router.push(`/instructors/${subscribeAlert.instructorId}`); }}
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
+                >
+                  Eğitmeni Görüntüle
+                </button>
               </div>
-            ))}
+            </div>
           </div>
         )}
       </main>
