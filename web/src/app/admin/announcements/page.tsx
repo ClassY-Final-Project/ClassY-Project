@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 
 const TARGETS = [
   { value: "ALL", label: "Tüm Kullanıcılar", icon: "👥", desc: "Herkese gönderilir" },
-  { value: "STUDENT", label: "Sadece Öğrenciler", icon: "🎓", desc: "Öğrenci rolündeki kullanıcılar" },
-  { value: "INSTRUCTOR", label: "Sadece Eğitmenler", icon: "👨‍🏫", desc: "Eğitmen rolündeki kullanıcılar" },
+  { value: "STUDENT", label: "Öğrenciler", icon: "🎓", desc: "Öğrenci rolündeki kullanıcılar" },
+  { value: "INSTRUCTOR", label: "Eğitmenler", icon: "👨‍🏫", desc: "Eğitmen rolündeki kullanıcılar" },
 ];
 
 interface SentItem {
@@ -18,11 +20,12 @@ interface SentItem {
 
 export default function AdminAnnouncementsPage() {
   const { token } = useAuth();
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
   const [message, setMessage] = useState("");
   const [targetRole, setTargetRole] = useState("ALL");
   const [sending, setSending] = useState(false);
   const [history, setHistory] = useState<SentItem[]>([]);
-  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => {
     if (token) loadHistory();
@@ -47,13 +50,9 @@ export default function AdminAnnouncementsPage() {
     }
   }
 
-  function showToast(msg: string, ok: boolean) {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 4000);
-  }
-
   async function deleteAnnouncement(msg: string) {
-    if (!confirm("Bu duyuruyu tüm kullanıcılardan silmek istediğinize emin misiniz?")) return;
+    const ok = await confirm({ title: "Duyuruyu Sil", message: "Bu duyuruyu tüm kullanıcılardan silmek istediğinize emin misiniz?", confirmText: "Sil", danger: true });
+    if (!ok) return;
     
     const res = await fetch(`/api/admin/announcements?message=${encodeURIComponent(msg)}`, {
       method: "DELETE",
@@ -61,16 +60,18 @@ export default function AdminAnnouncementsPage() {
     });
     
     if (res.ok) {
-      showToast("Duyuru silindi.", true);
+      showToast("Duyuru silindi.", "success");
       loadHistory();
     } else {
-      showToast("Duyuru silinemedi.", false);
+      showToast("Duyuru silinemedi.", "error");
     }
   }
 
   async function sendAnnouncement() {
     if (!message.trim()) return;
-    if (!confirm(`"${TARGETS.find(t => t.value === targetRole)?.label}" grubuna duyuru gönderilecek. Emin misiniz?`)) return;
+    const targetLabel = TARGETS.find(t => t.value === targetRole)?.label;
+    const ok = await confirm({ title: "Duyuru Gönder", message: `"${targetLabel}" grubuna duyuru gönderilecek. Emin misiniz?`, confirmText: "Gönder" });
+    if (!ok) return;
 
     setSending(true);
     const res = await fetch("/api/admin/announcements", {
@@ -80,11 +81,11 @@ export default function AdminAnnouncementsPage() {
     });
     const data = await res.json();
     if (res.ok) {
-      showToast(`Duyuru ${data.count} kullanıcıya gönderildi.`, true);
+      showToast(`Duyuru ${data.count} kullanıcıya gönderildi.`, "success");
       loadHistory();
       setMessage("");
     } else {
-      showToast(data.error || "Gönderilemedi.", false);
+      showToast(data.error || "Gönderilemedi.", "error");
     }
     setSending(false);
   }
@@ -93,12 +94,6 @@ export default function AdminAnnouncementsPage() {
 
   return (
     <div className="p-8 space-y-8 max-w-2xl">
-      {toast && (
-        <div className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-lg text-sm font-medium text-white ${toast.ok ? "bg-emerald-500" : "bg-red-500"}`}>
-          {toast.msg}
-        </div>
-      )}
-
       <div>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Duyurular</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Kullanıcılara platform bildirimi gönder</p>

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/Skeleton";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 
 interface QuizItem {
   id: string;
@@ -16,12 +18,13 @@ interface QuizItem {
 
 export default function AdminQuizzesPage() {
   const { token } = useAuth();
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
   const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => { if (token) loadQuizzes(); }, [token]);
 
@@ -33,13 +36,9 @@ export default function AdminQuizzesPage() {
     setLoading(false);
   }
 
-  function showToast(msg: string, ok: boolean) {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  }
-
   async function deleteQuiz(quizId: string, title: string) {
-    if (!confirm(`"${title}" quizini silmek istediğinize emin misiniz?`)) return;
+    const ok = await confirm({ title: "Quizi Sil", message: `"${title}" quizini kalıcı olarak silmek istediğinize emin misiniz?`, confirmText: "Sil", danger: true });
+    if (!ok) return;
     setDeleting(quizId);
     const res = await fetch(`/api/admin/quizzes/${quizId}`, {
       method: "DELETE",
@@ -47,9 +46,9 @@ export default function AdminQuizzesPage() {
     });
     if (res.ok) {
       setQuizzes((prev) => prev.filter((q) => q.id !== quizId));
-      showToast("Quiz silindi.", true);
+      showToast("Quiz silindi.", "success");
     } else {
-      showToast("Silinemedi.", false);
+      showToast("Silinemedi.", "error");
     }
     setDeleting(null);
   }
@@ -75,12 +74,6 @@ export default function AdminQuizzesPage() {
 
   return (
     <div className="p-8 space-y-6">
-      {toast && (
-        <div className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-lg text-sm font-medium text-white ${toast.ok ? "bg-emerald-500" : "bg-red-500"}`}>
-          {toast.msg}
-        </div>
-      )}
-
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Quizler</h1>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm } from "@/components/ConfirmModal";
 
 interface RoomItem {
   id: string;
@@ -21,6 +22,7 @@ interface RoomItem {
 
 export default function AdminStudyRoomsPage() {
   const { token } = useAuth();
+  const { confirm } = useConfirm();
   const [rooms, setRooms] = useState<RoomItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"active" | "all">("active");
@@ -45,7 +47,8 @@ export default function AdminStudyRoomsPage() {
   }
 
   async function closeRoom(id: string) {
-    if (!confirm("Bu odayı kapatmak istediğinize emin misiniz?")) return;
+    const ok = await confirm({ title: "Odayı Kapat", message: "Bu çalışma odasını kapatmak istediğinize emin misiniz?", confirmText: "Kapat", danger: true });
+    if (!ok) return;
     setClosing(id);
     try {
       await fetch(`/api/admin/study-rooms/${id}`, {

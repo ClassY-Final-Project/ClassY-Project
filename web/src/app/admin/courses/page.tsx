@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/Skeleton";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 
 interface CourseItem {
   id: string;
@@ -16,13 +18,14 @@ interface CourseItem {
 
 export default function AdminCoursesPage() {
   const { token } = useAuth();
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
   const [courses, setCourses] = useState<CourseItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
   const [deleting, setDeleting] = useState<string | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => { if (token) loadCourses(); }, [token]);
 
@@ -34,11 +37,6 @@ export default function AdminCoursesPage() {
     setLoading(false);
   }
 
-  function showToast(msg: string, ok: boolean) {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  }
-
   async function togglePublish(courseId: string, current: boolean) {
     setToggling(courseId);
     const res = await fetch(`/api/admin/courses/${courseId}`, {
@@ -48,15 +46,16 @@ export default function AdminCoursesPage() {
     });
     if (res.ok) {
       setCourses((prev) => prev.map((c) => c.id === courseId ? { ...c, isPublished: !current } : c));
-      showToast(current ? "Kurs yayından kaldırıldı." : "Kurs yayına alındı.", true);
+      showToast(current ? "Kurs yayından kaldırıldı." : "Kurs yayına alındı.", "success");
     } else {
-      showToast("Güncelleme başarısız.", false);
+      showToast("Güncelleme başarısız.", "error");
     }
     setToggling(null);
   }
 
   async function deleteCourse(courseId: string, title: string) {
-    if (!confirm(`"${title}" kursunu silmek istediğinize emin misiniz?`)) return;
+    const ok = await confirm({ title: "Kursu Sil", message: `"${title}" kursunu kalıcı olarak silmek istediğinize emin misiniz?`, confirmText: "Sil", danger: true });
+    if (!ok) return;
     setDeleting(courseId);
     const res = await fetch(`/api/courses/${courseId}`, {
       method: "DELETE",
@@ -64,9 +63,9 @@ export default function AdminCoursesPage() {
     });
     if (res.ok) {
       setCourses((prev) => prev.filter((c) => c.id !== courseId));
-      showToast("Kurs silindi.", true);
+      showToast("Kurs silindi.", "success");
     } else {
-      showToast("Silinemedi.", false);
+      showToast("Silinemedi.", "error");
     }
     setDeleting(null);
   }
@@ -81,12 +80,6 @@ export default function AdminCoursesPage() {
 
   return (
     <div className="p-8 space-y-6">
-      {toast && (
-        <div className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-lg text-sm font-medium text-white ${toast.ok ? "bg-emerald-500" : "bg-red-500"}`}>
-          {toast.msg}
-        </div>
-      )}
-
       <div>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Kurslar</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{courses.length} kurs · {courses.filter(c => c.isPublished).length} yayında</p>

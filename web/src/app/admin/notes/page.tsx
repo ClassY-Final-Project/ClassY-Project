@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/Skeleton";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 
 interface NoteItem {
   id: string;
@@ -25,12 +27,13 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function AdminNotesPage() {
   const { token } = useAuth();
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => { if (token) loadNotes(); }, [token]);
 
@@ -42,13 +45,9 @@ export default function AdminNotesPage() {
     setLoading(false);
   }
 
-  function showToast(msg: string, ok: boolean) {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  }
-
   async function deleteNote(noteId: string, fileName: string) {
-    if (!confirm(`"${fileName}" notunu silmek istediğinize emin misiniz?`)) return;
+    const ok = await confirm({ title: "Notu Sil", message: `"${fileName}" ders notunu kalıcı olarak silmek istediğinize emin misiniz?`, confirmText: "Sil", danger: true });
+    if (!ok) return;
     setDeleting(noteId);
     const res = await fetch(`/api/admin/notes/${noteId}`, {
       method: "DELETE",
@@ -56,9 +55,9 @@ export default function AdminNotesPage() {
     });
     if (res.ok) {
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
-      showToast("Ders notu silindi.", true);
+      showToast("Ders notu silindi.", "success");
     } else {
-      showToast("Silinemedi.", false);
+      showToast("Silinemedi.", "error");
     }
     setDeleting(null);
   }
@@ -75,12 +74,6 @@ export default function AdminNotesPage() {
 
   return (
     <div className="p-8 space-y-6">
-      {toast && (
-        <div className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-lg text-sm font-medium text-white ${toast.ok ? "bg-emerald-500" : "bg-red-500"}`}>
-          {toast.msg}
-        </div>
-      )}
-
       <div>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Ders Notları</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
