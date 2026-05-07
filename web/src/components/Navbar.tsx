@@ -92,16 +92,16 @@ export default function Navbar() {
           { href: "/instructor/courses", label: "📝 Kurslarım" },
           { href: "/instructor/earnings", label: "💰 Kazançlarım" },
           { href: "/instructor/quiz", label: "📋 Quiz" },
-          { href: "/live", label: "🔴 Canlı" },
+          { href: "/live", label: "🎥 Canlı" },
           // { href: "/study-rooms", label: "📚 Odalar" },
-          { href: "/courses", label: "📖 Katalog" },
+          { href: "/courses", label: "🎓 Katalog" },
         ]
       : [
           { href: "/dashboard", label: "💻 Çalışma Alanım" },
           { href: "/study-rooms", label: "📚 Odalar" },
-          { href: "/live", label: "🔴 Canlı Ders" },
+          { href: "/live", label: "🎥 Canlı Ders" },
           { href: "/instructors", label: "👨‍🏫 Eğitmenler" },
-          { href: "/courses", label: "📖 Kurslar" },
+          { href: "/courses", label: "🎓 Kurslar" },
           ...(activePlan !== "PLATINUM" ? [{ href: "/pricing", label: "⭐ Planını Yükselt", highlight: true }] : []),
         ]
     : [];

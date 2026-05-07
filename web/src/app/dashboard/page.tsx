@@ -35,6 +35,46 @@ interface SubjectStat {
   avgScore: number | null;
 }
 
+interface KarneSubjectStat {
+  id: string;
+  name: string;
+  totalWeeks: number;
+  weeksWithPdf: number;
+  totalPdfs: number;
+  pct: number;
+}
+
+interface KarneCourseStat {
+  courseId: string;
+  title: string;
+  thumbnailUrl: string | null;
+  instructor: { fullName: string | null; email: string };
+  totalLessons: number;
+  completedLessons: number;
+  allCompleted: boolean;
+  pct: number;
+}
+
+interface KarneQuizStat {
+  id: string;
+  title: string;
+  subject: string;
+  score: number | null;
+  createdAt: string;
+  isAssigned: boolean;
+  instructor: { fullName: string | null; email: string } | null;
+}
+
+interface KarneLiveRoom {
+  id: string;
+  name: string;
+  status: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  joinedAt: string;
+  instructor: { id: string; fullName: string | null; email: string };
+}
+
 function formatDuration(secs: number): string {
   if (secs < 60) return `${secs}s`;
   const h = Math.floor(secs / 3600);
@@ -88,8 +128,13 @@ export default function DashboardPage() {
   const [generated, setGenerated] = useState<{ noteId: string; quizId: string; summary: string; flashcards: { front: string; back: string }[]; quiz: GeneratedQuizItem[] } | null>(null);
 
   const [activeView, setActiveView] = useState<"dashboard" | "karne">("dashboard");
+  const [karneTab, setKarneTab] = useState<"tumu" | "dersler" | "kurslar" | "quizler" | "canli">("tumu");
   const [studyStats, setStudyStats] = useState<SubjectStat[]>([]);
   const [totalStudySeconds, setTotalStudySeconds] = useState(0);
+  const [karneSubjects, setKarneSubjects] = useState<KarneSubjectStat[]>([]);
+  const [karneCourses, setKarneCourses] = useState<KarneCourseStat[]>([]);
+  const [karneQuizzes, setKarneQuizzes] = useState<KarneQuizStat[]>([]);
+  const [karneLiveRooms, setKarneLiveRooms] = useState<KarneLiveRoom[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
   const [upgradeModal, setUpgradeModal] = useState<{ title: string; description: string } | null>(null);
 
@@ -129,12 +174,20 @@ export default function DashboardPage() {
     if (!token) return;
     setLoadingStats(true);
     try {
-      const res = await fetch("/api/study-stats", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      setStudyStats(json.stats || []);
-      setTotalStudySeconds(json.totalStudySeconds || 0);
+      const [statsRes, karneRes] = await Promise.all([
+        fetch("/api/study-stats", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/karne", { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const statsJson = await statsRes.json();
+      setStudyStats(statsJson.stats || []);
+      setTotalStudySeconds(statsJson.totalStudySeconds || 0);
+      if (karneRes.ok) {
+        const karneJson = await karneRes.json();
+        setKarneSubjects(karneJson.subjectStats || []);
+        setKarneCourses(karneJson.courseStats || []);
+        setKarneQuizzes(karneJson.quizStats || []);
+        setKarneLiveRooms(karneJson.liveRooms || []);
+      }
     } catch {
       // sessizce geç
     } finally {
@@ -473,6 +526,7 @@ export default function DashboardPage() {
         {activeView === "karne" && (
           <main className="flex-1 overflow-y-auto">
             <div className="max-w-4xl mx-auto px-6 py-8">
+              {/* Başlık */}
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Çalışma Karnem</h2>
@@ -483,93 +537,249 @@ export default function DashboardPage() {
                     </span>
                   </p>
                 </div>
-                <button
-                  onClick={loadStudyStats}
-                  className="text-sm text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
-                >
+                <button onClick={loadStudyStats} className="text-sm text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
                   ↻ Yenile
                 </button>
               </div>
 
+              {/* Alt Sekmeler */}
+              <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 gap-1 mb-6 w-fit flex-wrap">
+                {([
+                  { id: "tumu", label: "🗂 Tümü" },
+                  { id: "dersler", label: "📚 Derslerim" },
+                  { id: "kurslar", label: "🎓 Kurslarım" },
+                  { id: "quizler", label: "📋 Quizlerim" },
+                  { id: "canli", label: "🎥 Canlı Dersler" },
+                ] as const).map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setKarneTab(t.id)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      karneTab === t.id
+                        ? "bg-white dark:bg-zinc-700 text-indigo-700 dark:text-indigo-400 shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
               {loadingStats ? (
                 <div className="text-center py-16 text-zinc-400 text-sm">Yükleniyor...</div>
-              ) : studyStats.length === 0 ? (
-                <div className="text-center py-16">
-                  <p className="text-4xl mb-3">📊</p>
-                  <p className="text-zinc-500 text-sm">Henüz çalışma istatistiği yok.</p>
-                  <p className="text-zinc-400 text-xs mt-1">
-                    Çalışma odalarına katılın, not ve quiz oluşturun.
-                  </p>
-                </div>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {studyStats.map((stat) => {
-                    const pct =
-                      totalStudySeconds > 0
-                        ? Math.round((stat.studySeconds / totalStudySeconds) * 100)
-                        : 0;
-                    return (
-                      <div
-                        key={stat.subject}
-                        className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm shrink-0">
-                              {stat.subject.charAt(0).toUpperCase()}
+                <>
+                  {/* ── DERSLERİM ── */}
+                  {(karneTab === "tumu" || karneTab === "dersler") && (
+                    karneSubjects.length === 0 && karneTab !== "tumu" ? (
+                      <div className="text-center py-16">
+                        <p className="text-4xl mb-3">📚</p>
+                        <p className="text-zinc-500 text-sm">Henüz ders eklemediniz.</p>
+                      </div>
+                    ) : karneSubjects.length > 0 ? (
+                      <div className="mb-8">
+                        {karneTab === "tumu" && (
+                          <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">📚 Derslerim</h3>
+                        )}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          {karneSubjects.map((s) => (
+                            <div key={s.id} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5">
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm shrink-0">
+                                  {s.name.charAt(0).toUpperCase()}
+                                </div>
+                                <p className="font-semibold text-zinc-900 dark:text-white text-sm flex-1 truncate">{s.name}</p>
+                              </div>
+                              <div className="mb-3">
+                                <div className="flex justify-between text-xs text-zinc-400 mb-1">
+                                  <span>{s.weeksWithPdf} / {s.totalWeeks} hafta PDF yüklendi</span>
+                                  <span className={`font-semibold ${s.pct >= 70 ? "text-emerald-500" : s.pct >= 40 ? "text-amber-500" : "text-red-500"}`}>{s.pct}%</span>
+                                </div>
+                                <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${s.pct >= 70 ? "bg-emerald-500" : s.pct >= 40 ? "bg-amber-500" : "bg-red-500"}`}
+                                    style={{ width: `${s.pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <p className="text-xs text-zinc-400">Toplam {s.totalPdfs} PDF yüklendi</p>
                             </div>
-                            <p className="font-semibold text-zinc-900 dark:text-white text-sm">
-                              {stat.subject}
-                            </p>
-                          </div>
-                          {stat.avgScore !== null && (
-                            <span
-                              className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                stat.avgScore >= 70
-                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                  : stat.avgScore >= 50
-                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                                  : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                              }`}
-                            >
-                              %{stat.avgScore}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="mb-3">
-                          <div className="flex justify-between text-xs text-zinc-400 mb-1">
-                            <span>⏱ {formatDuration(stat.studySeconds)}</span>
-                            <span>{pct}%</span>
-                          </div>
-                          <div className="h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-indigo-500 rounded-full transition-all"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex gap-4 text-xs text-zinc-500">
-                          <span className="flex items-center gap-1">
-                            <span className="text-blue-500">📝</span>
-                            {stat.noteCount} not
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <span className="text-violet-500">📋</span>
-                            {stat.quizCount} quiz
-                          </span>
-                          {stat.avgScore !== null && (
-                            <span className="flex items-center gap-1">
-                              <span className="text-emerald-500">🎯</span>
-                              Ort. %{stat.avgScore}
-                            </span>
-                          )}
+                          ))}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    ) : null
+                  )}
+
+                  {/* ── KURSLARIM ── */}
+                  {(karneTab === "tumu" || karneTab === "kurslar") && (
+                    karneCourses.length === 0 && karneTab !== "tumu" ? (
+                      <div className="text-center py-16">
+                        <p className="text-4xl mb-3">🎓</p>
+                        <p className="text-zinc-500 text-sm">Henüz kursa kaydolmadınız.</p>
+                      </div>
+                    ) : karneCourses.length > 0 ? (
+                      <div className="mb-8">
+                        {karneTab === "tumu" && (
+                          <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">🎓 Kurslarım</h3>
+                        )}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          {karneCourses.map((c) => (
+                            <div key={c.courseId} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5">
+                              <div className="flex items-start justify-between gap-3 mb-3">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-zinc-900 dark:text-white text-sm truncate">{c.title}</p>
+                                  <p className="text-xs text-zinc-400 mt-0.5">{c.instructor.fullName || c.instructor.email}</p>
+                                </div>
+                                {c.allCompleted && (
+                                  <span className="shrink-0 text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                    🏆 Sertifika Alındı
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mb-3">
+                                <div className="flex justify-between text-xs text-zinc-400 mb-1">
+                                  <span>{c.completedLessons} / {c.totalLessons} ders tamamlandı</span>
+                                  <span className="font-semibold text-indigo-500">{c.pct}%</span>
+                                </div>
+                                <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${c.allCompleted ? "bg-emerald-500" : "bg-indigo-500"}`}
+                                    style={{ width: `${c.pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                              {c.allCompleted && (
+                                <a
+                                  href={`/courses/${c.courseId}/certificate`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
+                                >
+                                  Sertifikayı Görüntüle →
+                                </a>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null
+                  )}
+
+                  {/* ── QUİZLERİM ── */}
+                  {(karneTab === "tumu" || karneTab === "quizler") && (
+                    karneQuizzes.length === 0 && karneTab !== "tumu" ? (
+                      <div className="text-center py-16">
+                        <p className="text-4xl mb-3">📋</p>
+                        <p className="text-zinc-500 text-sm">Henüz quiz yok.</p>
+                      </div>
+                    ) : karneQuizzes.length > 0 ? (
+                      <div className="mb-8">
+                        {karneTab === "tumu" && (
+                          <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">📋 Quizlerim</h3>
+                        )}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          {karneQuizzes.map((q) => (
+                            <div key={q.id} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5">
+                              <div className="flex items-start justify-between gap-3 mb-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 mb-0.5">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                                      {q.isAssigned ? "📨 Eğitmen" : "🤖 AI"}
+                                    </span>
+                                    <span className="text-[10px] text-zinc-400">{q.subject}</span>
+                                  </div>
+                                  <p className="font-semibold text-zinc-900 dark:text-white text-sm truncate">{q.title}</p>
+                                  {q.isAssigned && q.instructor && (
+                                    <p className="text-xs text-zinc-400 mt-0.5">{q.instructor.fullName || q.instructor.email}</p>
+                                  )}
+                                </div>
+                                {q.score !== null ? (
+                                  <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${
+                                    q.score >= 70 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                    : q.score >= 50 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                    : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                  }`}>
+                                    %{q.score}
+                                  </span>
+                                ) : (
+                                  <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                                    Çözülmedi
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-zinc-400 mb-3">
+                                {new Date(q.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}
+                              </p>
+                              <a
+                                href={`/study/quiz/${q.id}`}
+                                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium"
+                              >
+                                Sonuçları Detaylı Gör →
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null
+                  )}
+
+                  {/* ── CANLI DERSLER ── */}
+                  {(karneTab === "tumu" || karneTab === "canli") && (
+                    karneLiveRooms.length === 0 && karneTab !== "tumu" ? (
+                      <div className="text-center py-16">
+                        <p className="text-4xl mb-3">🎥</p>
+                        <p className="text-zinc-500 text-sm">Henüz canlı derse katılmadınız.</p>
+                      </div>
+                    ) : karneLiveRooms.length > 0 ? (
+                      <div className="mb-8">
+                        {karneTab === "tumu" && (
+                          <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">🎥 Canlı Dersler</h3>
+                        )}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          {karneLiveRooms.map((r) => (
+                            <div key={r.id + r.joinedAt} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5">
+                              <div className="flex items-start justify-between gap-3 mb-2">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-zinc-900 dark:text-white text-sm truncate">{r.name}</p>
+                                  <p className="text-xs text-zinc-400 mt-0.5">{r.instructor.fullName || r.instructor.email}</p>
+                                </div>
+                                <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
+                                  r.status === "LIVE"
+                                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                    : "bg-zinc-100 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400"
+                                }`}>
+                                  {r.status === "LIVE" ? "🔴 Canlı" : "✓ Sona Erdi"}
+                                </span>
+                              </div>
+                              <div className="space-y-0.5 text-xs text-zinc-400">
+                                {r.startedAt && (
+                                  <p>📅 {new Date(r.startedAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                                )}
+                                {r.startedAt && r.endedAt && (
+                                  <p>⏱ Süre: {(() => {
+                                    const diff = new Date(r.endedAt).getTime() - new Date(r.startedAt).getTime();
+                                    const m = Math.floor(diff / 60000);
+                                    const h = Math.floor(m / 60);
+                                    return h > 0 ? `${h} sa ${m % 60} dk` : `${m} dk`;
+                                  })()}</p>
+                                )}
+                                <p className="text-indigo-400/70">✓ Katıldın</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null
+                  )}
+
+                  {/* Tümü modunda hiç veri yoksa */}
+                  {karneTab === "tumu" && karneSubjects.length === 0 && karneCourses.length === 0 && karneQuizzes.length === 0 && karneLiveRooms.length === 0 && (
+                    <div className="text-center py-16">
+                      <p className="text-4xl mb-3">📊</p>
+                      <p className="text-zinc-500 text-sm">Henüz çalışma verisi yok.</p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </main>
