@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm } from "@/components/ConfirmModal";
 
 interface LessonContent {
   id: string;
@@ -61,6 +62,7 @@ const FORM_TYPES = ["VIDEO_URL", "PDF", "TEXT", "ASSIGNMENT_TEXT"];
 export default function CourseEditorPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const { token, loading, user } = useAuth();
+  const { confirm } = useConfirm();
   const router = useRouter();
 
   const [course, setCourse] = useState<Course | null>(null);
@@ -310,7 +312,8 @@ export default function CourseEditorPage() {
   }
 
   async function deleteSection(sectionId: string) {
-    if (!confirm("Bu bölümü ve içindeki tüm dersleri silmek istediğinizden emin misiniz?")) return;
+    const ok = await confirm({ title: "Bölümü Sil", message: "Bu bölümü ve içindeki tüm dersleri silmek istediğinizden emin misiniz?", confirmText: "Sil", danger: true });
+    if (!ok) return;
     const res = await fetch(`/api/courses/${courseId}/sections/${sectionId}`, {
       method: "DELETE", headers: { Authorization: `Bearer ${token}` },
     });
@@ -345,7 +348,8 @@ export default function CourseEditorPage() {
   }
 
   async function deleteLesson(sectionId: string, lessonId: string) {
-    if (!confirm("Bu dersi silmek istediğinizden emin misiniz?")) return;
+    const ok = await confirm({ title: "Dersi Sil", message: "Bu dersi silmek istediğinizden emin misiniz?", confirmText: "Sil", danger: true });
+    if (!ok) return;
     const res = await fetch(`/api/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}`, {
       method: "DELETE", headers: { Authorization: `Bearer ${token}` },
     });
@@ -399,6 +403,13 @@ export default function CourseEditorPage() {
                 }`}>
                   {course.isPublished ? "Yayında" : "Taslak"}
                 </span>
+                <Link href={`/instructor/courses/${courseId}/students`}
+                  className="px-3 py-2 rounded-xl text-sm font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Öğrenciler
+                </Link>
                 {!course.isPublished && (
                   <button onClick={togglePublish} disabled={publishing}
                     className="px-4 py-2 rounded-xl text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50">
