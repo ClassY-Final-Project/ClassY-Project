@@ -335,8 +335,8 @@ function LessonView({
 }
 
 function ContentBlock({ content }: { content: LessonContent }) {
-  if (content.contentType === "VIDEO_URL" && content.assetUrl) {
-    const embedUrl = getYoutubeEmbedUrl(content.assetUrl);
+  if ((content.contentType === "VIDEO_URL" || content.contentType === "UPLOADED_VIDEO") && content.assetUrl) {
+    const embedUrl = content.contentType === "VIDEO_URL" ? getYoutubeEmbedUrl(content.assetUrl) : null;
     return (
       <div className="space-y-2">
         {content.title && <p className="text-sm font-medium text-zinc-300">{content.title}</p>}
@@ -346,11 +346,14 @@ function ContentBlock({ content }: { content: LessonContent }) {
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
           </div>
         ) : (
-          <a href={content.assetUrl} target="_blank" rel="noreferrer"
-            className="flex items-center gap-2 p-4 bg-zinc-800 rounded-xl text-indigo-400 hover:text-indigo-300 hover:bg-zinc-700 transition-colors text-sm">
-            <span>🎬</span>
-            Videoyu Aç
-          </a>
+          <div className="rounded-xl overflow-hidden bg-black">
+            <video
+              src={content.assetUrl}
+              controls
+              className="w-full max-h-[560px]"
+              preload="metadata"
+            />
+          </div>
         )}
       </div>
     );

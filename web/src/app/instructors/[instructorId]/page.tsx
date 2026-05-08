@@ -12,6 +12,7 @@ interface InstructorDetail {
   fullName: string | null;
   email: string;
   bio: string | null;
+  avatarUrl: string | null;
   createdAt: string;
   isSubscribed: boolean;
   subscriptionPaid: boolean;
@@ -126,8 +127,14 @@ export default function InstructorProfilePage() {
         {/* Profil Kartı */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6 shadow-sm">
           <div className="flex items-start gap-5">
-            <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-3xl shrink-0 shadow-md">
-              {initials}
+            <div className="w-20 h-20 rounded-2xl shrink-0 shadow-md overflow-hidden">
+              {instructor.avatarUrl ? (
+                <img src={instructor.avatarUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-3xl">
+                  {initials}
+                </div>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-3 flex-wrap">

@@ -25,7 +25,7 @@ export async function GET(request: Request) {
         where: { userId: user.userId, room: { status: "ENDED" } },
         include: {
           room: {
-            include: { instructor: { select: { id: true, fullName: true, email: true } }, _count: { select: { participants: true } } },
+            include: { instructor: { select: { id: true, fullName: true, email: true, avatarUrl: true } }, _count: { select: { participants: true } } },
           },
         },
         orderBy: { joinedAt: "desc" },
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
       if (user.role !== "STUDENT") {
         instructorEndedRooms = await (prisma as any).liveRoom.findMany({
           where: { instructorId: user.userId, status: "ENDED", id: { notIn: [...participatedIds] as string[] } },
-          include: { instructor: { select: { id: true, fullName: true, email: true } }, _count: { select: { participants: true } } },
+          include: { instructor: { select: { id: true, fullName: true, email: true, avatarUrl: true } }, _count: { select: { participants: true } } },
           orderBy: { endedAt: "desc" },
         });
       }
@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     const rooms = await (prisma as any).liveRoom.findMany({
       where,
       include: {
-        instructor: { select: { id: true, fullName: true, email: true } },
+        instructor: { select: { id: true, fullName: true, email: true, avatarUrl: true } },
         _count: { select: { participants: true } },
       },
       orderBy: [{ status: "asc" }, { scheduledAt: "asc" }, { createdAt: "desc" }],

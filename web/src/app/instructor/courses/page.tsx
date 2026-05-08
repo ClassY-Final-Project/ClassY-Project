@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { uploadFileToStorage } from "@/lib/upload";
 
 interface Course {
   id: string;
@@ -24,6 +25,7 @@ export default function InstructorCoursesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", price: "0", thumbnailUrl: "" });
+  const [thumbnailUploading, setThumbnailUploading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -41,6 +43,31 @@ export default function InstructorCoursesPage() {
     const json = await res.json();
     if (res.ok) setCourses(json.courses || []);
     setFetching(false);
+  }
+
+  async function deleteCourse(id: string, title: string) {
+    if (!confirm(`"${title}" kursunu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) return;
+    const res = await fetch(`/api/courses/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setCourses((c) => c.filter((x) => x.id !== id));
+    } else {
+      const json = await res.json();
+      alert(json.error || "Kurs silinemedi.");
+    }
+  }
+
+  async function uploadThumbnail(file: File) {
+    setThumbnailUploading(true);
+    try {
+      const url = await uploadFileToStorage(file, token!);
+      setForm((f) => ({ ...f, thumbnailUrl: url }));
+    } catch (e: unknown) {
+      setError((e as Error).message || "Görsel yüklenemedi.");
+    }
+    setThumbnailUploading(false);
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -113,10 +140,10 @@ export default function InstructorCoursesPage() {
         ) : (
           <div className="space-y-3">
             {courses.map((course) => (
+              <div key={course.id} className="flex items-center gap-2">
               <Link
-                key={course.id}
                 href={`/instructor/courses/${course.id}`}
-                className="flex items-center gap-4 bg-white dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-sm transition-all group"
+                className="flex-1 flex items-center gap-4 bg-white dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-sm transition-all group"
               >
                 <div className="w-12 h-12 rounded-xl bg-linear-to-br from-indigo-100 to-violet-100 dark:from-indigo-950/60 dark:to-violet-950/60 flex items-center justify-center shrink-0 overflow-hidden">
                   {course.thumbnailUrl ? (
@@ -153,6 +180,16 @@ export default function InstructorCoursesPage() {
                   </svg>
                 </div>
               </Link>
+              <button
+                onClick={() => deleteCourse(course.id, course.title)}
+                className="p-2 rounded-xl text-zinc-300 dark:text-zinc-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors shrink-0"
+                title="Kursu sil"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+              </div>
             ))}
           </div>
         )}
@@ -190,29 +227,42 @@ export default function InstructorCoursesPage() {
                   className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Fiyat (₺)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0"
-                    value={form.price}
-                    onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Kapak Görseli URL</label>
-                  <input
-                    type="text"
-                    placeholder="https://..."
-                    value={form.thumbnailUrl}
-                    onChange={(e) => setForm((f) => ({ ...f, thumbnailUrl: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Fiyat (₺)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0"
+                  value={form.price}
+                  onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Kapak Görseli</label>
+                {form.thumbnailUrl ? (
+                  <div className="relative rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={form.thumbnailUrl} alt="Kapak" className="w-full h-28 object-cover" />
+                    <button type="button" onClick={() => setForm((f) => ({ ...f, thumbnailUrl: "" }))}
+                      className="absolute top-1.5 right-1.5 p-1 bg-black/50 hover:bg-black/70 rounded-lg text-white transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <label className={`flex flex-col items-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${thumbnailUploading ? "border-indigo-300 bg-indigo-50/50 dark:bg-indigo-950/20" : "border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10"}` }>
+                    {thumbnailUploading ? (
+                      <><div className="w-5 h-5 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" /><span className="text-xs text-indigo-500">Yükleniyor...</span></>
+                    ) : (
+                      <><span className="text-xl">🖼️</span><span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Görsel seç veya sürükle</span><span className="text-xs text-zinc-400">İsteğe bağlı</span></>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" disabled={thumbnailUploading}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadThumbnail(f); e.target.value = ""; }} />
+                  </label>
+                )}
               </div>
 
               <div className="flex gap-2 pt-1">

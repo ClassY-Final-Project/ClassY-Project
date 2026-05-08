@@ -11,6 +11,8 @@ interface User {
   createdAt: string;
   plan?: string;
   planExpiresAt?: string | null;
+  avatarUrl?: string | null;
+  bio?: string | null;
 }
 
 interface AuthContextType {

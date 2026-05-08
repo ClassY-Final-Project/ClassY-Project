@@ -10,6 +10,7 @@ interface Instructor {
   fullName: string | null;
   email: string;
   bio: string | null;
+  avatarUrl: string | null;
   createdAt: string;
   isSubscribed: boolean;
   subscriptionPaid: boolean;
@@ -146,8 +147,14 @@ export default function InstructorsPage() {
               <div key={inst.id} className="bg-white dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
                 {/* Avatar + İsim */}
                 <div className="flex items-center gap-3 mb-3">
-                  <Link href={`/instructors/${inst.id}`} className="w-11 h-11 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-lg shrink-0 hover:opacity-90 transition-opacity">
-                    {(inst.fullName || inst.email).charAt(0).toUpperCase()}
+                  <Link href={`/instructors/${inst.id}`} className="shrink-0 hover:opacity-90 transition-opacity">
+                    {inst.avatarUrl ? (
+                      <img src={inst.avatarUrl} alt="" className="w-11 h-11 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-11 h-11 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-lg">
+                        {(inst.fullName || inst.email).charAt(0).toUpperCase()}
+                      </div>
+                    )}
                   </Link>
                   <div className="flex-1 min-w-0">
                     <Link href={`/instructors/${inst.id}`} className="font-semibold text-zinc-800 dark:text-zinc-200 truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors block">{inst.fullName || inst.email}</Link>

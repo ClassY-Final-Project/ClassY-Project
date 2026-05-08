@@ -72,8 +72,14 @@ export default function InstructorDashboardPage() {
 
         {/* Hoşgeldin */}
         <div className="flex items-center gap-5">
-          <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-2xl shadow-md shrink-0">
-            {initials}
+          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-md shrink-0">
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-2xl">
+                {initials}
+              </div>
+            )}
           </div>
           <div>
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">

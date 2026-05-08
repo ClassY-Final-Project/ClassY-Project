@@ -64,6 +64,27 @@ export async function GET(request: Request) {
   }
 }
 
+export async function PATCH(request: Request) {
+  const { user, error } = verifyToken(request);
+  if (error) return error;
+  if (!user) return NextResponse.json({ error: "Yetkisiz." }, { status: 401 });
+
+  try {
+    const body = await request.json();
+    const updateData: { fullName?: string; bio?: string; avatarUrl?: string } = {};
+    if (typeof body.fullName === "string") updateData.fullName = body.fullName.trim();
+    if (typeof body.bio === "string") updateData.bio = body.bio.trim();
+    if (typeof body.avatarUrl === "string") updateData.avatarUrl = body.avatarUrl;
+
+    const updated = await prisma.user.update({ where: { id: user.userId }, data: updateData });
+    const { passwordHash, ...safeUser } = updated;
+    return NextResponse.json({ user: safeUser });
+  } catch (err) {
+    console.error("PATCH ME error:", err);
+    return NextResponse.json({ error: "Güncellenemedi." }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: Request) {
   const { user, error } = verifyToken(request);
   if (error) return error;

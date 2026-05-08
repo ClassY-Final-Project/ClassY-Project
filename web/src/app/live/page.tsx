@@ -18,7 +18,7 @@ interface LiveRoom {
   createdAt: string;
   joinedAt?: string | null;
   isSubscribed: boolean;
-  instructor: { id: string; fullName: string | null; email: string };
+  instructor: { id: string; fullName: string | null; email: string; avatarUrl: string | null };
   _count?: { participants: number };
 }
 
@@ -233,11 +233,20 @@ export default function LiveRoomsPage() {
                     : "border-zinc-100 dark:border-zinc-800"
                 }`}>
                   <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">{room.name}</p>
-                      <p className="text-xs text-zinc-400 mt-0.5">
-                        {room.instructor.fullName || room.instructor.email}
-                      </p>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {room.instructor.avatarUrl ? (
+                        <img src={room.instructor.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                          {(room.instructor.fullName || room.instructor.email).charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">{room.name}</p>
+                        <p className="text-xs text-zinc-400 mt-0.5 truncate">
+                          {room.instructor.fullName || room.instructor.email}
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {!isInstructor && !room.isSubscribed && (

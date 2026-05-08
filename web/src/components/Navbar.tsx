@@ -224,8 +224,11 @@ export default function Navbar() {
                     <span className="text-sm font-bold text-zinc-900 dark:text-white leading-none">{user.fullName || "Kullanıcı"}</span>
                     <span className="text-xs text-zinc-500 font-medium mt-1">{isInstructor ? "Eğitmen" : "Öğrenci"}</span>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white dark:ring-zinc-900">
-                    {initials}
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white dark:ring-zinc-900 shrink-0">
+                    {user.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={user.avatarUrl} alt={user.fullName || ""} className="w-full h-full object-cover" />
+                    ) : initials}
                   </div>
                 </Link>
                 <button onClick={logout} title="Çıkış"
@@ -269,8 +272,11 @@ export default function Navbar() {
             {user ? (
               <div className="flex items-center justify-between">
                 <Link href="/profile" className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                    {initials}
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
+                    {user.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={user.avatarUrl} alt={user.fullName || ""} className="w-full h-full object-cover" />
+                    ) : initials}
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-zinc-900 dark:text-white truncate max-w-40">{user.fullName || user.email}</span>

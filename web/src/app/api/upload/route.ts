@@ -1,20 +1,12 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const SUPABASE_URL = process.env.SUPABASE_URL!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY!;
 const BUCKET = "course-content";
-
-async function ensureBucket() {
-  await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ id: BUCKET, name: BUCKET, public: true }),
-  });
-}
 
 export async function POST(request: Request) {
   const { user, error } = verifyToken(request);
@@ -25,16 +17,18 @@ export async function POST(request: Request) {
 
   if (!file) return NextResponse.json({ error: "Dosya bulunamadı." }, { status: 400 });
 
-  const maxSize = 500 * 1024 * 1024; // 500 MB
-  if (file.size > maxSize) return NextResponse.json({ error: "Dosya 500 MB'dan büyük olamaz." }, { status: 400 });
+  const maxSize = 50 * 1024 * 1024; // 50 MB (Supabase free tier limit)
+  if (file.size > maxSize)
+    return NextResponse.json(
+      { error: `Dosya 50 MB'dan büyük olamaz. Büyük videolar için URL seçeneğini kullanın.` },
+      { status: 413 }
+    );
 
   const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
-  const fileName = `${user!.userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-  await ensureBucket();
+  const filePath = `${user!.userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
   const buffer = await file.arrayBuffer();
-  const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${fileName}`, {
+  const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${filePath}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
@@ -50,6 +44,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Dosya yüklenemedi." }, { status: 500 });
   }
 
-  const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${fileName}`;
+  const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${filePath}`;
   return NextResponse.json({ url });
 }

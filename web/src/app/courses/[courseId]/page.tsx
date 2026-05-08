@@ -12,7 +12,7 @@ interface Course {
   thumbnailUrl: string | null;
   price: string;
   createdAt: string;
-  instructor?: { id: string; fullName: string | null } | null;
+  instructor?: { id: string; fullName: string | null; avatarUrl: string | null } | null;
 }
 
 interface LessonContent {
@@ -184,8 +184,14 @@ export default function CourseDetailPage() {
                 href={`/instructors/${course.instructor.id}`}
                 className="flex items-center gap-3 group w-fit"
               >
-                <div className="w-10 h-10 rounded-xl bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shrink-0">
-                  {(course.instructor.fullName || "?").charAt(0).toUpperCase()}
+                <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0">
+                  {course.instructor.avatarUrl ? (
+                    <img src={course.instructor.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold">
+                      {(course.instructor.fullName || "?").charAt(0).toUpperCase()}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <p className="text-xs text-zinc-400">Eğitmen</p>
