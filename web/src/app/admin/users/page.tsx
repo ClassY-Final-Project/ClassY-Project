@@ -12,6 +12,7 @@ interface UserItem {
   fullName: string | null;
   role: string;
   createdAt: string;
+  avatarUrl: string | null;
 }
 
 const ROLES = ["STUDENT", "INSTRUCTOR", "ADMIN"] as const;
@@ -148,8 +149,11 @@ export default function AdminUsersPage() {
             {filtered.map((u) => (
               <div key={u.id} className="grid grid-cols-[1fr_1.4fr_140px_auto_auto] items-center px-6 py-3 gap-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs shrink-0">
-                    {(u.fullName || u.email).charAt(0).toUpperCase()}
+                  <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs shrink-0 overflow-hidden">
+                    {u.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={u.avatarUrl} alt={u.fullName || ""} className="w-full h-full object-cover" />
+                    ) : (u.fullName || u.email).charAt(0).toUpperCase()}
                   </div>
                   <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">{u.fullName || "—"}</span>
                 </div>

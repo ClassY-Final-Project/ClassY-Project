@@ -16,6 +16,7 @@ interface RoomItem {
   scheduledEnd: string | null;
   expiresAt: string | null;
   createdAt: string;
+  roomAccess: "PUBLIC" | "GOLD_PLUS" | "PLATINUM_ONLY";
   createdBy: { id: string; fullName: string | null; email: string };
   _count: { participants: number };
 }
@@ -115,6 +116,7 @@ export default function AdminStudyRoomsPage() {
                 <th className="text-left px-4 py-3 text-zinc-500 font-medium">Oda</th>
                 <th className="text-left px-4 py-3 text-zinc-500 font-medium">Açan</th>
                 <th className="text-center px-4 py-3 text-zinc-500 font-medium">Tip</th>
+                <th className="text-center px-4 py-3 text-zinc-500 font-medium">Erişim</th>
                 <th className="text-center px-4 py-3 text-zinc-500 font-medium">Katılımcı</th>
                 <th className="text-center px-4 py-3 text-zinc-500 font-medium">Durum</th>
                 <th className="text-center px-4 py-3 text-zinc-500 font-medium">Bitiş</th>
@@ -137,6 +139,15 @@ export default function AdminStudyRoomsPage() {
                     <span className={`text-xs px-2 py-0.5 rounded-full ${room.type === "VOICE" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"}`}>
                       {room.type === "VOICE" ? "🎙️ Sesli" : "🤫 Sessiz"}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {room.roomAccess === "PLATINUM_ONLY" ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 font-medium">💎 Platinum</span>
+                    ) : room.roomAccess === "GOLD_PLUS" ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-medium">⭐ Gold+</span>
+                    ) : (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">Herkese Açık</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-center text-zinc-600 dark:text-zinc-400">
                     {room._count.participants} / {room.maxCapacity}
