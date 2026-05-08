@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 
 interface SearchResponse {
   courses: { id: string; title: string; instructor: { fullName: string | null; email: string } }[];
-  instructors: { id: string; fullName: string | null; email: string; bio: string | null }[];
+  instructors: { id: string; fullName: string | null; email: string; bio: string | null; avatarUrl: string | null }[];
   studyRooms: { id: string; name: string; topic: string | null; type: string }[];
   liveRooms: { id: string; name: string; dailyRoomName: string; instructor: { fullName: string | null } }[];
 }
@@ -17,6 +18,9 @@ export default function GlobalSearch() {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -69,7 +73,7 @@ export default function GlobalSearch() {
         </svg>
       </button>
 
-      {open && (
+      {open && mounted && createPortal(
         <div
           className="fixed inset-0 z-[60] flex items-start justify-center pt-20 px-4 bg-black/60 backdrop-blur-sm"
           onClick={() => setOpen(false)}
@@ -125,8 +129,11 @@ export default function GlobalSearch() {
                       {results!.instructors.map((i) => (
                         <Link key={i.id} href={`/instructors/${i.id}`} onClick={() => setOpen(false)}
                           className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
-                            {(i.fullName || i.email).charAt(0).toUpperCase()}
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs shrink-0 overflow-hidden">
+                            {i.avatarUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={i.avatarUrl} alt={i.fullName || ""} className="w-full h-full object-cover" />
+                            ) : (i.fullName || i.email).charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">{i.fullName || i.email}</p>
@@ -171,7 +178,7 @@ export default function GlobalSearch() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   );
 }

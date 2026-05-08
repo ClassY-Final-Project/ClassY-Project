@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
           { bio: { contains: q, mode: "insensitive" } },
         ],
       },
-      select: { id: true, fullName: true, email: true, bio: true },
+      select: { id: true, fullName: true, email: true, bio: true, avatarUrl: true },
       take: 5,
     }),
     prisma.studyRoom.findMany({
