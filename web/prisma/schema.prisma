@@ -52,6 +52,7 @@ model User {
   studyRoomParticipations StudyRoomParticipant[]
   studyRoomMessages       StudyRoomMessage[]
   planSubscriptions       PlanSubscription[]
+  pomodoroSessions        PomodoroSession[]
 }
 
 // --- 2. MARKETPLACE ---
@@ -363,9 +364,10 @@ model StudyRoom {
   roomAccess     RoomAccess    @default(PUBLIC)
   createdAt      DateTime      @default(now())
 
-  createdBy    User                   @relation("StudyRoomsCreated", fields: [createdById], references: [id], onDelete: Cascade)
-  participants StudyRoomParticipant[]
-  messages     StudyRoomMessage[]
+  createdBy        User                   @relation("StudyRoomsCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  participants     StudyRoomParticipant[]
+  messages         StudyRoomMessage[]
+  pomodoroSessions PomodoroSession[]
 
   @@map("study_rooms")
 }
@@ -398,6 +400,21 @@ model StudyRoomParticipant {
 
   @@unique([roomId, userId])
   @@map("study_room_participants")
+}
+
+model PomodoroSession {
+  id           String   @id @default(uuid())
+  userId       String
+  roomId       String
+  roomName     String
+  studyMinutes Int
+  completedAt  DateTime @default(now())
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room StudyRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
+  @@map("pomodoro_sessions")
 }
 
 // --- 6. SUBSCRIPTIONS ---

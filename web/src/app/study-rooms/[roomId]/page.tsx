@@ -118,6 +118,10 @@ export default function StudyRoomPage() {
   const [totalStudySeconds, setTotalStudySeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const totalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const completionFiredRef = useRef(false);
+  const workMinRef = useRef(25);  // synced to workMin via useEffect below
+  const restMinRef = useRef(5);   // synced to restMin via useEffect below
+  const isBreakRef = useRef(false); // synced to isBreak via useEffect below
 
   const dailyContainerRef = useRef<HTMLDivElement>(null);
   const callFrameRef = useRef<any>(null);
@@ -191,23 +195,53 @@ export default function StudyRoomPage() {
     };
   }, [joined, token, roomId]);
 
+  // Keep refs in sync with derived state
+  useEffect(() => { workMinRef.current = workMin; }, [workMin]);
+  useEffect(() => { restMinRef.current = restMin; }, [restMin]);
+  useEffect(() => { isBreakRef.current = isBreak; }, [isBreak]);
+
+  // Log session to API every time a work session completes (sessionCount increments)
+  const prevSessionCountRef = useRef(0);
+  useEffect(() => {
+    if (sessionCount <= 0 || sessionCount <= prevSessionCountRef.current) return;
+    prevSessionCountRef.current = sessionCount;
+    if (!token || !roomId) return;
+    fetch(`/api/study-rooms/${roomId}/session`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ studyMinutes: workMinRef.current }),
+    }).catch(() => {/* sessizce geç */});
+  }, [sessionCount, token, roomId]);
+
+  // Reset the guard whenever the timer is (re)started so the next completion fires
+  useEffect(() => {
+    if (timerRunning) completionFiredRef.current = false;
+  }, [timerRunning]);
+
   useEffect(() => {
     if (isScheduled) return;
     if (timerRunning) {
       timerRef.current = setInterval(() => {
+        // Read current seconds via functional updater, but do ALL side effects here
+        // (never inside the updater — calling setState/showToast inside an updater is illegal)
         setTimerSeconds(s => {
           if (s <= 1) {
-            setTimerRunning(false);
-            if (!isBreak) {
-              setSessionCount(c => c + 1);
-              showToast(`🎉 ${workMin} dk tamamlandı! Mola zamanı.`, "success");
-              setIsBreak(true);
-              return restMin * 60;
-            } else {
-              showToast("💪 Mola bitti! Çalışmaya devam.", "success");
-              setIsBreak(false);
-              return workMin * 60;
+            if (!completionFiredRef.current) {
+              completionFiredRef.current = true;
+              // Schedule side effects on next microtask to stay outside the updater
+              Promise.resolve().then(() => {
+                setTimerRunning(false);
+                if (!isBreakRef.current) {
+                  setSessionCount(c => c + 1);
+                  showToast(`🎉 ${workMinRef.current} dk tamamlandı! Mola zamanı.`, "success");
+                  setIsBreak(true);
+                } else {
+                  showToast("💪 Mola bitti! Çalışmaya devam.", "success");
+                  setIsBreak(false);
+                }
+              });
             }
+            return isBreakRef.current ? workMinRef.current * 60 : restMinRef.current * 60;
           }
           return s - 1;
         });
@@ -216,7 +250,7 @@ export default function StudyRoomPage() {
       if (timerRef.current) clearInterval(timerRef.current);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [timerRunning, isBreak, workMin, restMin, isScheduled, showToast]);
+  }, [timerRunning, isScheduled, showToast]);
 
   useEffect(() => {
     if (timerRunning && !isBreak) {
@@ -650,8 +684,14 @@ export default function StudyRoomPage() {
                 return (
                   <div key={p.id} className={`p-2.5 rounded-lg ${isSelf ? "bg-purple-50 dark:bg-purple-900/10 border border-purple-200/50 dark:border-purple-800/20" : ""}`}>
                     <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 ${isSelf ? "bg-purple-600" : "bg-zinc-300 dark:bg-gray-700"}`}>
-                        {(p.user.fullName || "?")[0].toUpperCase()}
+                      <div className={`w-9 h-9 rounded-full overflow-hidden shrink-0 ${!p.user.avatarUrl ? (isSelf ? "bg-purple-600" : "bg-zinc-300 dark:bg-gray-700") : ""}`}>
+                        {p.user.avatarUrl ? (
+                          <img src={p.user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className={`w-full h-full flex items-center justify-center text-sm font-bold text-white ${isSelf ? "bg-purple-600" : "bg-zinc-300 dark:bg-gray-700"}`}>
+                            {(p.user.fullName || "?")[0].toUpperCase()}
+                          </div>
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-zinc-900 dark:text-white text-sm font-medium truncate">

@@ -58,7 +58,7 @@ export default function CourseDetailPage() {
   const [enrolling, setEnrolling] = useState(false);
   const [enrollError, setEnrollError] = useState("");
   const [completedLessons, setCompletedLessons] = useState(0);
-  const [reviews, setReviews] = useState<{ id: string; rating: number; comment: string | null; studentName: string; createdAt: string }[]>([]);
+  const [reviews, setReviews] = useState<{ id: string; rating: number; comment: string | null; studentName: string; studentAvatarUrl: string | null; createdAt: string }[]>([]);
   const [avgRating, setAvgRating] = useState(0);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
   const [submittingReview, setSubmittingReview] = useState(false);
@@ -106,7 +106,7 @@ export default function CourseDetailPage() {
     });
     if (res.ok) {
       const d = await res.json();
-      setReviews((prev) => [{ ...d.review, studentName: user?.fullName || user?.email || "Sen" }, ...prev.filter((r) => r.id !== d.review.id)]);
+      setReviews((prev) => [{ ...d.review, studentName: user?.fullName || user?.email || "Sen", studentAvatarUrl: user?.avatarUrl ?? null }, ...prev.filter((r) => r.id !== d.review.id)]);
     }
     setSubmittingReview(false);
   }
@@ -424,8 +424,14 @@ export default function CourseDetailPage() {
                 <div key={r.id} className="bg-white dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs">
-                        {r.studentName.charAt(0).toUpperCase()}
+                      <div className="w-7 h-7 rounded-full overflow-hidden shrink-0">
+                        {r.studentAvatarUrl ? (
+                          <img src={r.studentAvatarUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs">
+                            {r.studentName.charAt(0).toUpperCase()}
+                          </div>
+                        )}
                       </div>
                       <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{r.studentName}</span>
                     </div>

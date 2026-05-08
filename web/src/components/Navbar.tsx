@@ -228,9 +228,9 @@ export default function Navbar() {
                   ⭐ Planını Yükselt
                 </Link>
               ) : (
-                <span className={`hidden md:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${planBadge.cls}`}>
+                <Link href="/pricing" className={`hidden md:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold transition-opacity hover:opacity-75 ${planBadge.cls}`}>
                   {planBadge.label}
-                </span>
+                </Link>
               )
             )}
 

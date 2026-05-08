@@ -24,10 +24,29 @@ export async function GET(req: Request) {
     }),
   ]);
 
+  // Pomodoro seansları — Prisma client henüz güncel değilse raw SQL kullan, hata olursa yoksay
+  let pomodoroSessions: { completedAt: Date }[] = [];
+  try {
+    if ((prisma as any).pomodoroSession) {
+      pomodoroSessions = await (prisma as any).pomodoroSession.findMany({
+        where: { userId: user!.userId, completedAt: { gte: since } },
+        select: { completedAt: true },
+      });
+    } else {
+      pomodoroSessions = await prisma.$queryRaw<{ completedAt: Date }[]>`
+        SELECT "completedAt" FROM pomodoro_sessions
+        WHERE "userId" = ${user!.userId} AND "completedAt" >= ${since}
+      `;
+    }
+  } catch {
+    // pomodoro_sessions tablosu henüz migrate edilmemişse sessizce devam et
+  }
+
   // Aktif günler kümesi
   const activeDays = new Set<string>();
   for (const n of notes) activeDays.add(toDateStr(new Date(n.uploadedAt)));
   for (const q of quizzes) activeDays.add(toDateStr(new Date(q.createdAt)));
+  for (const p of pomodoroSessions) activeDays.add(toDateStr(new Date(p.completedAt)));
 
   // Streak hesapla (bugünden geriye)
   const today = toDateStr(new Date());

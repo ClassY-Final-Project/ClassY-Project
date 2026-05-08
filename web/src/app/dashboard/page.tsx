@@ -78,6 +78,13 @@ interface KarneLiveRoom {
   instructor: { id: string; fullName: string | null; email: string };
 }
 
+interface KarneStudyRoomStats {
+  totalSessions: number;
+  totalMinutes: number;
+  byRoom: { roomId: string; roomName: string; sessionCount: number; totalMinutes: number }[];
+  recent: { id: string; roomId: string; roomName: string; studyMinutes: number; completedAt: string }[];
+}
+
 function formatDuration(secs: number): string {
   if (secs < 60) return `${secs}s`;
   const h = Math.floor(secs / 3600);
@@ -132,13 +139,14 @@ export default function DashboardPage() {
   const [generated, setGenerated] = useState<{ noteId: string; quizId: string; summary: string; flashcards: { front: string; back: string }[]; quiz: GeneratedQuizItem[] } | null>(null);
 
   const [activeView, setActiveView] = useState<"dashboard" | "karne">("dashboard");
-  const [karneTab, setKarneTab] = useState<"tumu" | "dersler" | "kurslar" | "quizler" | "canli">("tumu");
+  const [karneTab, setKarneTab] = useState<"tumu" | "dersler" | "kurslar" | "quizler" | "canli" | "odalar">("tumu");
   const [studyStats, setStudyStats] = useState<SubjectStat[]>([]);
   const [totalStudySeconds, setTotalStudySeconds] = useState(0);
   const [karneSubjects, setKarneSubjects] = useState<KarneSubjectStat[]>([]);
   const [karneCourses, setKarneCourses] = useState<KarneCourseStat[]>([]);
   const [karneQuizzes, setKarneQuizzes] = useState<KarneQuizStat[]>([]);
   const [karneLiveRooms, setKarneLiveRooms] = useState<KarneLiveRoom[]>([]);
+  const [karneStudyRooms, setKarneStudyRooms] = useState<KarneStudyRoomStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [upgradeModal, setUpgradeModal] = useState<{ title: string; description: string } | null>(null);
 
@@ -191,6 +199,7 @@ export default function DashboardPage() {
         setKarneCourses(karneJson.courseStats || []);
         setKarneQuizzes(karneJson.quizStats || []);
         setKarneLiveRooms(karneJson.liveRooms || []);
+        setKarneStudyRooms(karneJson.studyRoomStats || null);
       }
     } catch {
       // sessizce geç
@@ -569,6 +578,7 @@ export default function DashboardPage() {
                   { id: "kurslar", label: "🎓 Kurslarım" },
                   { id: "quizler", label: "📋 Quizlerim" },
                   { id: "canli", label: "🎥 Canlı Dersler" },
+                  { id: "odalar", label: "📚 Odalar" },
                 ] as const).map((t) => (
                   <button
                     key={t.id}
@@ -791,8 +801,59 @@ export default function DashboardPage() {
                     ) : null
                   )}
 
+                  {/* ── ODALAR ── */}
+                  {(karneTab === "tumu" || karneTab === "odalar") && (
+                    !karneStudyRooms || karneStudyRooms.totalSessions === 0 ? (
+                      karneTab === "odalar" ? (
+                        <div className="text-center py-16">
+                          <p className="text-4xl mb-3">🏠</p>
+                          <p className="text-zinc-500 text-sm">Henüz çalışma odası seansı tamamlamadınız.</p>
+                        </div>
+                      ) : null
+                    ) : (
+                      <div className="mb-8">
+                        {karneTab === "tumu" && (
+                          <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">📚 Odalar</h3>
+                        )}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          {karneStudyRooms.byRoom.map((r) => (
+                            <div key={r.roomId} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5">
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-sm shrink-0">
+                                  {r.roomName.charAt(0).toUpperCase()}
+                                </div>
+                                <p className="font-semibold text-zinc-900 dark:text-white text-sm flex-1 truncate">{r.roomName}</p>
+                              </div>
+                              <div className="mb-3">
+                                <div className="flex justify-between text-xs text-zinc-400 mb-1">
+                                  <span>{r.sessionCount} seans tamamlandı</span>
+                                  <span className="font-semibold text-purple-500">
+                                    {r.totalMinutes >= 60
+                                      ? `${Math.floor(r.totalMinutes / 60)}s ${r.totalMinutes % 60}dk`
+                                      : `${r.totalMinutes}dk`}
+                                  </span>
+                                </div>
+                                <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full bg-purple-500 transition-all"
+                                    style={{ width: `${Math.min(100, Math.round((r.sessionCount / Math.max(...karneStudyRooms.byRoom.map(x => x.sessionCount))) * 100))}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <p className="text-xs text-zinc-400">
+                                Toplam {r.totalMinutes >= 60
+                                  ? `${Math.floor(r.totalMinutes / 60)} saat ${r.totalMinutes % 60} dakika`
+                                  : `${r.totalMinutes} dakika`} çalışıldı
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  )}
+
                   {/* Tümü modunda hiç veri yoksa */}
-                  {karneTab === "tumu" && karneSubjects.length === 0 && karneCourses.length === 0 && karneQuizzes.length === 0 && karneLiveRooms.length === 0 && (
+                  {karneTab === "tumu" && karneSubjects.length === 0 && karneCourses.length === 0 && karneQuizzes.length === 0 && karneLiveRooms.length === 0 && (!karneStudyRooms || karneStudyRooms.totalSessions === 0) && (
                     <div className="text-center py-16">
                       <p className="text-4xl mb-3">📊</p>
                       <p className="text-zinc-500 text-sm">Henüz çalışma verisi yok.</p>

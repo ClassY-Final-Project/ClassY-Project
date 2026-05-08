@@ -23,6 +23,7 @@ export async function GET(_request: Request, context: PublicCourseRouteContext) 
           select: {
             id: true,
             fullName: true,
+            avatarUrl: true,
             iban: true,
           },
         },

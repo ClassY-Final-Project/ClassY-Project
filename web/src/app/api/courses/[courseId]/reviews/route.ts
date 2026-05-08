@@ -10,7 +10,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
   const reviews = await prisma.courseReview.findMany({
     where: { courseId },
-    include: { student: { select: { fullName: true, email: true } } },
+    include: { student: { select: { fullName: true, email: true, avatarUrl: true } } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -25,6 +25,7 @@ export async function GET(_request: Request, context: RouteContext) {
       comment: r.comment,
       createdAt: r.createdAt,
       studentName: r.student.fullName || r.student.email.split("@")[0],
+      studentAvatarUrl: r.student.avatarUrl ?? null,
     })),
     averageRating: Math.round(avg * 10) / 10,
     totalReviews: reviews.length,

@@ -124,7 +124,49 @@ export async function GET(request: Request) {
       instructor: p.room.instructor,
     }));
 
-    return NextResponse.json({ subjectStats, courseStats, quizStats, liveRooms });
+    // 5. Çalışma Odası Pomodoro Seansları
+    let pomodoroSessions: { id: string; roomId: string; roomName: string; studyMinutes: number; completedAt: Date }[] = [];
+    try {
+      if ((prisma as any).pomodoroSession) {
+        pomodoroSessions = await (prisma as any).pomodoroSession.findMany({
+          where: { userId: user.userId },
+          orderBy: { completedAt: "desc" },
+          select: { id: true, roomId: true, roomName: true, studyMinutes: true, completedAt: true },
+        });
+      } else {
+        pomodoroSessions = await prisma.$queryRaw<{ id: string; roomId: string; roomName: string; studyMinutes: number; completedAt: Date }[]>`
+          SELECT id, "roomId", "roomName", "studyMinutes", "completedAt"
+          FROM pomodoro_sessions
+          WHERE "userId" = ${user.userId}
+          ORDER BY "completedAt" DESC
+        `;
+      }
+    } catch {
+      // pomodoro_sessions tablosu henüz migrate edilmemişse sessizce devam et
+    }
+
+    const totalPomodoroSessions = pomodoroSessions.length;
+    const totalPomodoroMinutes = pomodoroSessions.reduce((sum: number, s: any) => sum + s.studyMinutes, 0);
+
+    // Oda bazında grupla
+    const roomMap = new Map<string, { roomId: string; roomName: string; sessionCount: number; totalMinutes: number }>();
+    for (const s of pomodoroSessions) {
+      const existing = roomMap.get(s.roomId);
+      if (existing) {
+        existing.sessionCount++;
+        existing.totalMinutes += s.studyMinutes;
+      } else {
+        roomMap.set(s.roomId, { roomId: s.roomId, roomName: s.roomName, sessionCount: 1, totalMinutes: s.studyMinutes });
+      }
+    }
+    const studyRoomStats = {
+      totalSessions: totalPomodoroSessions,
+      totalMinutes: totalPomodoroMinutes,
+      byRoom: Array.from(roomMap.values()).sort((a, b) => b.totalMinutes - a.totalMinutes),
+      recent: pomodoroSessions.slice(0, 20),
+    };
+
+    return NextResponse.json({ subjectStats, courseStats, quizStats, liveRooms, studyRoomStats });
   } catch (err) {
     console.error("Karne API hatası:", err);
     return NextResponse.json({ error: "Sunucu hatası." }, { status: 500 });
