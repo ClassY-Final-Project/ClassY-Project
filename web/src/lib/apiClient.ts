@@ -301,6 +301,9 @@ export interface MyCourse {
   enrollmentId: string;
   purchasedAt: string;
   instructor: { id: string; fullName: string | null; email: string } | null;
+  totalLessons: number;
+  completedLessons: number;
+  progressPct: number;
 }
 
 export async function getMyCourses(): Promise<{ ok: boolean; courses?: MyCourse[]; error?: string }> {

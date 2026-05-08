@@ -57,6 +57,7 @@ export default function CourseDetailPage() {
   const [enrolled, setEnrolled] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
   const [enrollError, setEnrollError] = useState("");
+  const [completedLessons, setCompletedLessons] = useState(0);
   const [reviews, setReviews] = useState<{ id: string; rating: number; comment: string | null; studentName: string; createdAt: string }[]>([]);
   const [avgRating, setAvgRating] = useState(0);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
@@ -83,6 +84,9 @@ export default function CourseDetailPage() {
     fetch(`/api/courses/${courseId}/enroll`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (d) setEnrolled(d.enrolled); });
+    fetch(`/api/courses/${courseId}/progress`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setCompletedLessons(d.completedLessonIds?.length ?? 0); });
   }, [user, courseId]);
 
   useEffect(() => {
@@ -300,12 +304,30 @@ export default function CourseDetailPage() {
 
                 {user ? (
                   enrolled ? (
-                    <Link
-                      href={`/courses/${courseId}/learn`}
-                      className="block w-full py-3 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 transition-colors text-center"
-                    >
-                      ▶ Kursa Devam Et
-                    </Link>
+                    <>
+                      {totalLessons > 0 && (
+                        <div className="mb-1">
+                          <div className="flex justify-between text-xs text-zinc-500 dark:text-zinc-400 mb-1">
+                            <span>{completedLessons}/{totalLessons} ders tamamlandı</span>
+                            <span className="font-semibold text-indigo-500">
+                              {Math.round((completedLessons / totalLessons) * 100)}%
+                            </span>
+                          </div>
+                          <div className="h-2 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-indigo-500 rounded-full transition-all"
+                              style={{ width: `${(completedLessons / totalLessons) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      <Link
+                        href={`/courses/${courseId}/learn`}
+                        className="block w-full py-3 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 transition-colors text-center"
+                      >
+                        {completedLessons === 0 ? "▶ Kursa Başla" : completedLessons === totalLessons ? "🏆 Kursu Tamamladın" : "▶ Kursa Devam Et"}
+                      </Link>
+                    </>
                   ) : isFree ? (
                     <button
                       onClick={handleEnroll}

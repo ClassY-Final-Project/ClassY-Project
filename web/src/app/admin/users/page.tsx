@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/Skeleton";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 
 interface UserItem {
   id: string;
@@ -24,6 +26,8 @@ const ROLE_COLOR: Record<Role, string> = {
 
 export default function AdminUsersPage() {
   const { token } = useAuth();
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -33,7 +37,6 @@ export default function AdminUsersPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ email: "", fullName: "", password: "", role: "STUDENT" });
   const [creating, setCreating] = useState(false);
-  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => { if (token) loadUsers(); }, [token]);
 
@@ -45,11 +48,6 @@ export default function AdminUsersPage() {
     setLoading(false);
   }
 
-  function showToast(msg: string, ok: boolean) {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  }
-
   async function changeRole(userId: string, newRole: string) {
     setChangingRole(userId);
     const res = await fetch(`/api/users/${userId}`, {
@@ -59,15 +57,16 @@ export default function AdminUsersPage() {
     });
     if (res.ok) {
       setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));
-      showToast("Rol güncellendi.", true);
+      showToast("Rol güncellendi.", "success");
     } else {
-      showToast("Rol güncellenemedi.", false);
+      showToast("Rol güncellenemedi.", "error");
     }
     setChangingRole(null);
   }
 
   async function deleteUser(userId: string, name: string) {
-    if (!confirm(`"${name}" kullanıcısını silmek istediğinize emin misiniz?`)) return;
+    const ok = await confirm({ title: "Kullanıcıyı Sil", message: `"${name}" kullanıcısını kalıcı olarak silmek istediğinize emin misiniz?`, confirmText: "Sil", danger: true });
+    if (!ok) return;
     setDeleting(userId);
     const res = await fetch(`/api/users/${userId}`, {
       method: "DELETE",
@@ -75,9 +74,9 @@ export default function AdminUsersPage() {
     });
     if (res.ok) {
       setUsers((prev) => prev.filter((u) => u.id !== userId));
-      showToast("Kullanıcı silindi.", true);
+      showToast("Kullanıcı silindi.", "success");
     } else {
-      showToast("Silinemedi.", false);
+      showToast("Silinemedi.", "error");
     }
     setDeleting(null);
   }
@@ -92,12 +91,12 @@ export default function AdminUsersPage() {
     });
     const data = await res.json();
     if (res.ok) {
-      showToast("Kullanıcı oluşturuldu.", true);
+      showToast("Kullanıcı oluşturuldu.", "success");
       setShowCreate(false);
       setForm({ email: "", fullName: "", password: "", role: "STUDENT" });
       loadUsers();
     } else {
-      showToast(data.error || "Hata oluştu.", false);
+      showToast(data.error || "Hata oluştu.", "error");
     }
     setCreating(false);
   }
@@ -112,12 +111,6 @@ export default function AdminUsersPage() {
 
   return (
     <div className="p-8 space-y-6">
-      {toast && (
-        <div className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-lg text-sm font-medium text-white transition-all ${toast.ok ? "bg-emerald-500" : "bg-red-500"}`}>
-          {toast.msg}
-        </div>
-      )}
-
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Kullanıcılar</h1>

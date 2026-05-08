@@ -45,6 +45,7 @@ export default function QuizPage() {
   const [result, setResult] = useState<{ score: number; correctCount: number; totalQuestions: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showResultScreen, setShowResultScreen] = useState(false);
+  const [history, setHistory] = useState<{ id: string; score: number; createdAt: string }[]>([]);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -70,6 +71,14 @@ export default function QuizPage() {
         if (res.quiz.score !== null) {
           setResult({ score: res.quiz.score, correctCount: 0, totalQuestions: res.quiz.questions.length });
         }
+      }
+      // Konu geçmişini yükle
+      if (res.quiz.subject) {
+        const token = localStorage.getItem("classy_token");
+        fetch(`/api/quizzes?subject=${encodeURIComponent(res.quiz.subject)}&limit=8`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then((r) => r.ok ? r.json() : null)
+          .then((d) => { if (d?.quizzes) setHistory(d.quizzes); });
       }
     } else {
       setError(res.error || "Quiz yüklenemedi.");
@@ -144,6 +153,61 @@ export default function QuizPage() {
               ))}
             </div>
           </div>
+
+          {/* Soru bazlı analiz */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+            <h2 className="text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-4">📋 Soru Analizi</h2>
+            <div className="space-y-3">
+              {quiz.questions.map((q, i) => {
+                const isCorrect = q.userAnswer === q.correctAnswer;
+                return (
+                  <div key={q.id} className={`rounded-xl p-3.5 border ${isCorrect ? "border-emerald-200 bg-emerald-50/50 dark:border-emerald-800/40 dark:bg-emerald-950/20" : "border-red-200 bg-red-50/50 dark:border-red-800/40 dark:bg-red-950/20"}`}>
+                    <div className="flex items-start gap-2">
+                      <span className={`shrink-0 text-base ${isCorrect ? "text-emerald-500" : "text-red-500"}`}>{isCorrect ? "✓" : "✗"}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">{i + 1}. {q.questionText}</p>
+                        {!isCorrect && (
+                          <div className="space-y-1">
+                            <p className="text-[11px] text-red-600 dark:text-red-400">Senin cevabın: <span className="font-semibold">{q.userAnswer || "—"}</span></p>
+                            <p className="text-[11px] text-emerald-600 dark:text-emerald-400">Doğru cevap: <span className="font-semibold">{q.correctAnswer}</span></p>
+                          </div>
+                        )}
+                        {isCorrect && (
+                          <p className="text-[11px] text-emerald-600 dark:text-emerald-400">Doğru: <span className="font-semibold">{q.correctAnswer}</span></p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Konu skor geçmişi */}
+          {history.length > 1 && (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+              <h2 className="text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-4">📈 {quiz.subject} — Skor Geçmişi</h2>
+              <div className="flex items-end gap-1.5 h-20">
+                {[...history].reverse().map((h, i) => {
+                  const pct = h.score ?? 0;
+                  const color = pct >= 80 ? "bg-emerald-500" : pct >= 50 ? "bg-amber-400" : "bg-red-400";
+                  const isThis = h.id === quizId;
+                  return (
+                    <div key={h.id} className="flex-1 flex flex-col items-center gap-1 group relative">
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] text-zinc-400 opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity">{pct}%</div>
+                      <div
+                        className={`w-full rounded-t-sm transition-all ${color} ${isThis ? "ring-2 ring-offset-1 ring-indigo-400" : ""}`}
+                        style={{ height: `${Math.max(4, pct * 0.75)}px` }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
+                <span>En eski</span><span>En yeni</span>
+              </div>
+            </div>
+          )}
 
           {/* Aksiyon butonları */}
           <div className="flex gap-3">

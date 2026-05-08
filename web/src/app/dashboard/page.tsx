@@ -20,6 +20,9 @@ import {
 } from "@/lib/apiClient";
 import { DashboardSkeleton } from "@/components/Skeleton";
 import { useToast } from "@/components/Toast";
+import PdfPreview from "@/components/PdfPreview";
+import StreakWidget from "@/components/StreakWidget";
+import { useConfirm } from "@/components/ConfirmModal";
 import UpgradeModal from "@/components/UpgradeModal";
 
 interface SelectedView {
@@ -87,6 +90,7 @@ export default function DashboardPage() {
   const { user, token, loading } = useAuth();
   const router = useRouter();
   const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   const [openDersler, setOpenDersler] = useState(true);
   const [openKurslar, setOpenKurslar] = useState(false);
@@ -299,7 +303,8 @@ export default function DashboardPage() {
   }
 
   async function handleDeleteSubject(id: string) {
-    if (!confirm("Bu dersi ve tüm haftalarını silmek istediğinize emin misiniz?")) return;
+    const ok = await confirm({ title: "Dersi Sil", message: "Bu dersi ve tüm haftalarını silmek istediğinize emin misiniz?", confirmText: "Sil", danger: true });
+    if (!ok) return;
     const res = await deleteSubject(id);
     if (res.ok) {
       setSubjects((prev) => prev.filter((s) => s.id !== id));
@@ -430,10 +435,21 @@ export default function DashboardPage() {
                       {myCourses.map((c) => (
                         <Link
                           key={c.id}
-                          href={`/courses/${c.id}`}
-                          className="w-full block px-3 py-2 rounded-lg text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 truncate"
+                          href={`/courses/${c.id}/learn`}
+                          className="w-full block px-3 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
                         >
-                          🎓 {c.title}
+                          <span className="text-sm text-zinc-600 dark:text-zinc-400 truncate block">🎓 {c.title}</span>
+                          {c.totalLessons > 0 && (
+                            <div className="mt-1 flex items-center gap-1.5">
+                              <div className="flex-1 h-1 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${c.progressPct === 100 ? "bg-emerald-500" : "bg-indigo-500"}`}
+                                  style={{ width: `${c.progressPct}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] text-zinc-400 shrink-0">{c.progressPct}%</span>
+                            </div>
+                          )}
                         </Link>
                       ))}
                     </div>
@@ -541,6 +557,9 @@ export default function DashboardPage() {
                   ↻ Yenile
                 </button>
               </div>
+
+              {/* Streak + Takvim */}
+              {token && <StreakWidget token={token as string} />}
 
               {/* Alt Sekmeler */}
               <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 gap-1 mb-6 w-fit flex-wrap">
@@ -1087,6 +1106,8 @@ function UploadView(props: {
           </>
         )}
       </div>
+
+      {file && <PdfPreview file={file} />}
 
       {error && (
         <div className="mt-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm">

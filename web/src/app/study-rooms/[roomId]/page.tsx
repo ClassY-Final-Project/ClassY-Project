@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 
 interface Participant {
   id: string;
@@ -96,6 +97,7 @@ export default function StudyRoomPage() {
   const params = useParams();
   const roomId = params.roomId as string;
   const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   const [room, setRoom] = useState<StudyRoom | null>(null);
   const [fetching, setFetching] = useState(true);
@@ -261,7 +263,8 @@ export default function StudyRoomPage() {
   }, [roomId, token, router, showToast]);
 
   async function closeRoom() {
-    if (!confirm("Odayı kapatmak istediğinize emin misiniz?")) return;
+    const ok = await confirm({ title: "Odayı Kapat", message: "Odayı kapatmak istediğinize emin misiniz?", confirmText: "Kapat", danger: true });
+    if (!ok) return;
     try {
       const res = await fetch(`/api/study-rooms/${roomId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error();

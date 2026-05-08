@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/Skeleton";
+import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmModal";
 
 interface RoomItem {
   id: string;
@@ -26,12 +28,13 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function AdminLiveRoomsPage() {
   const { token } = useAuth();
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
   const [rooms, setRooms] = useState<RoomItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => { if (token) loadRooms(); }, [token]);
 
@@ -43,13 +46,9 @@ export default function AdminLiveRoomsPage() {
     setLoading(false);
   }
 
-  function showToast(msg: string, ok: boolean) {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  }
-
   async function deleteRoom(roomId: string, name: string) {
-    if (!confirm(`"${name}" canlı dersini silmek istediğinize emin misiniz?`)) return;
+    const ok = await confirm({ title: "Canlı Dersi Sil", message: `"${name}" canlı dersini kalıcı olarak silmek istediğinize emin misiniz?`, confirmText: "Sil", danger: true });
+    if (!ok) return;
     setDeleting(roomId);
     const res = await fetch(`/api/admin/live-rooms/${roomId}`, {
       method: "DELETE",
@@ -57,9 +56,9 @@ export default function AdminLiveRoomsPage() {
     });
     if (res.ok) {
       setRooms((prev) => prev.filter((r) => r.id !== roomId));
-      showToast("Canlı ders silindi.", true);
+      showToast("Canlı ders silindi.", "success");
     } else {
-      showToast("Silinemedi.", false);
+      showToast("Silinemedi.", "error");
     }
     setDeleting(null);
   }
@@ -74,9 +73,9 @@ export default function AdminLiveRoomsPage() {
       setRooms((prev) =>
         prev.map((r) => (r.id === roomId ? { ...r, status: newStatus as RoomItem["status"] } : r))
       );
-      showToast("Durum güncellendi.", true);
+      showToast("Durum güncellendi.", "success");
     } else {
-      showToast("Güncelleme başarısız.", false);
+      showToast("Güncelleme başarısız.", "error");
     }
   }
 
@@ -91,12 +90,6 @@ export default function AdminLiveRoomsPage() {
 
   return (
     <div className="p-8 space-y-6">
-      {toast && (
-        <div className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-lg text-sm font-medium text-white ${toast.ok ? "bg-emerald-500" : "bg-red-500"}`}>
-          {toast.msg}
-        </div>
-      )}
-
       <div>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Canlı Dersler</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">

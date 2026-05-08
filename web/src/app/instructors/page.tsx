@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm } from "@/components/ConfirmModal";
 
 interface Instructor {
   id: string;
@@ -26,8 +27,17 @@ interface Subscription {
 
 type Tab = "all" | "subscribed";
 
-export default function InstructorsPage() {
+export default function InstructorsPageWrapper() {
+  return (
+    <Suspense>
+      <InstructorsPage />
+    </Suspense>
+  );
+}
+
+function InstructorsPage() {
   const { user, loading } = useAuth();
+  const { confirm } = useConfirm();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -88,7 +98,8 @@ export default function InstructorsPage() {
   }
 
   async function handleUnsubscribe(instructorId: string) {
-    if (!confirm("Aboneliği iptal etmek istediğinizden emin misiniz?")) return;
+    const ok = await confirm({ title: "Aboneliği İptal Et", message: "Aboneliği iptal etmek istediğinizden emin misiniz?", confirmText: "İptal Et", danger: true });
+    if (!ok) return;
     const token = localStorage.getItem("classy_token");
     await fetch(`/api/instructors/${instructorId}/subscribe`, {
       method: "DELETE",

@@ -4,9 +4,11 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirm } from "@/components/ConfirmModal";
 
 export default function LiveRoomPage() {
   const { user, loading } = useAuth();
+  const { confirm } = useConfirm();
   const router = useRouter();
   const params = useParams();
   const roomId = params.roomName as string;
@@ -144,7 +146,8 @@ export default function LiveRoomPage() {
   }
 
   async function handleEnd() {
-    if (!confirm("Canlı dersi bitirmek istediğinizden emin misiniz? Bu işlem geri alınamaz.")) return;
+    const ok = await confirm({ title: "Dersi Bitir", message: "Canlı dersi bitirmek istediğinizden emin misiniz? Bu işlem geri alınamaz.", confirmText: "Bitir", danger: true });
+    if (!ok) return;
     setEnding(true);
     if (timerRef.current) clearInterval(timerRef.current);
     const authToken = localStorage.getItem("classy_token");
@@ -161,8 +164,9 @@ export default function LiveRoomPage() {
     }
   }
 
-  function handleLeaveAsStudent() {
-    if (!confirm("Dersten ayrılmak istediğinizden emin misiniz?")) return;
+  async function handleLeaveAsStudent() {
+    const ok = await confirm({ title: "Dersten Ayrıl", message: "Dersten ayrılmak istediğinizden emin misiniz?", confirmText: "Ayrıl" });
+    if (!ok) return;
     if (timerRef.current) clearInterval(timerRef.current);
     router.replace("/live");
   }

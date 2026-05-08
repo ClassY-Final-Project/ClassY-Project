@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
+import GlobalSearch from "./GlobalSearch";
 
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
@@ -92,51 +93,51 @@ export default function Navbar() {
           { href: "/instructor/courses", label: "📝 Kurslarım" },
           { href: "/instructor/earnings", label: "💰 Kazançlarım" },
           { href: "/instructor/quiz", label: "📋 Quiz" },
-          { href: "/live", label: "🎥 Canlı" },
+          { href: "/live", label: "🔴 Canlı" },
           // { href: "/study-rooms", label: "📚 Odalar" },
-          { href: "/courses", label: "🎓 Katalog" },
+          { href: "/courses", label: "📖 Katalog" },
         ]
       : [
           { href: "/dashboard", label: "💻 Çalışma Alanım" },
           { href: "/study-rooms", label: "📚 Odalar" },
-          { href: "/live", label: "🎥 Canlı Ders" },
+          { href: "/live", label: "🔴 Canlı Ders" },
           { href: "/instructors", label: "👨‍🏫 Eğitmenler" },
-          { href: "/courses", label: "🎓 Kurslar" },
-          ...(activePlan !== "PLATINUM" ? [{ href: "/pricing", label: "⭐ Planını Yükselt", highlight: true }] : []),
+          { href: "/courses", label: "📖 Kurslar" },
         ]
     : [];
 
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-zinc-200/50 dark:border-white/5 bg-white/70 dark:bg-[#09090b]/70 backdrop-blur-xl">
-        <div className="w-full px-6 py-4 flex items-center justify-between relative">
+        <div className="w-full px-6 py-4 grid grid-cols-[auto_1fr_auto] items-center gap-4">
           {/* Logo (Left) */}
-          <div className="flex-1 flex items-center justify-start">
+          <div className="flex items-center justify-start">
             <Link href={user?.role === "ADMIN" ? "/admin" : user ? "/dashboard" : "/"} className="flex items-center gap-0 group w-fit">
               <Image src="/logo.png" alt="ClassY Logo" width={44} height={44} className="w-11 h-11 object-contain" priority />
-              <span className="font-extrabold text-2xl tracking-tight transition-transform group-hover:scale-105" style={{ color: '#763fff' }}>classY</span>
+              <span className="font-extrabold text-2xl tracking-tight transition-transform group-hover:scale-105" style={{ color: '#763fff' }} translate="no">classY</span>
             </Link>
           </div>
 
           {/* Desktop Nav (Center) */}
           {user ? (
-            <nav className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center justify-center gap-1">
+            <nav className="hidden lg:flex items-center justify-center gap-0.5 overflow-hidden">
               {navLinks.map(l => (
-                <Link key={l.href} href={l.href} className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap ${
-                  (l as any).highlight && pathname !== l.href
-                    ? "text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10"
-                    : pathname === l.href || pathname.startsWith(l.href + "/")
-                      ? "bg-zinc-100 dark:bg-white/10 text-indigo-700 dark:text-indigo-300"
-                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-white/5"
+                <Link key={l.href} href={l.href} className={`px-3 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap ${
+                  pathname === l.href || pathname.startsWith(l.href + "/")
+                    ? "bg-zinc-100 dark:bg-white/10 text-indigo-700 dark:text-indigo-300"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-white/5"
                 }`}>
                   {l.label}
                 </Link>
               ))}
             </nav>
-          ) : null}
+          ) : <div />}
 
           {/* Actions (Right) */}
-          <div className="flex-1 flex items-center justify-end gap-3">
+          <div className="flex items-center justify-end gap-3">
+            {/* Global Arama */}
+            {user && <GlobalSearch />}
+
             {/* Dark mode toggle */}
             <button onClick={toggleDark} title={dark ? "Açık mod" : "Gece modu"}
               className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors">
@@ -209,11 +210,17 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* Plan badge */}
+            {/* Plan badge / upgrade button */}
             {user && !isInstructor && (
-              <span className={`hidden md:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${planBadge.cls}`}>
-                {planBadge.label}
-              </span>
+              activePlan === "FREE" ? (
+                <Link href="/pricing" className="hidden md:inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors whitespace-nowrap">
+                  ⭐ Planını Yükselt
+                </Link>
+              ) : (
+                <span className={`hidden md:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${planBadge.cls}`}>
+                  {planBadge.label}
+                </span>
+              )
             )}
 
             {/* Desktop Auth */}
