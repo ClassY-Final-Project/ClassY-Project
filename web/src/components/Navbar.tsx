@@ -109,18 +109,18 @@ export default function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-zinc-200/50 dark:border-white/5 bg-white/70 dark:bg-[#09090b]/70 backdrop-blur-xl">
-        <div className="w-full px-6 py-4 grid grid-cols-[auto_1fr_auto] items-center gap-4">
+        <div className="w-full relative flex items-center px-6 py-4 min-h-[64px]">
           {/* Logo (Left) */}
-          <div className="flex items-center justify-start">
+          <div className="flex items-center justify-start z-10">
             <Link href={user?.role === "ADMIN" ? "/admin" : user ? "/dashboard" : "/"} className="flex items-center gap-0 group w-fit">
               <Image src="/logo.png" alt="ClassY Logo" width={44} height={44} className="w-11 h-11 object-contain" priority />
               <span className="font-extrabold text-2xl tracking-tight transition-transform group-hover:scale-105" style={{ color: '#763fff' }} translate="no">classY</span>
             </Link>
           </div>
 
-          {/* Desktop Nav (Center) */}
+          {/* Desktop Nav (Tam Ortalı) */}
           {user ? (
-            <nav className="hidden lg:flex items-center justify-center gap-0.5 overflow-hidden">
+            <nav className="hidden lg:flex items-center gap-0.5 overflow-hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               {navLinks.map(l => (
                 <Link key={l.href} href={l.href} className={`px-3 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap ${
                   pathname === l.href || pathname.startsWith(l.href + "/")
@@ -134,7 +134,7 @@ export default function Navbar() {
           ) : <div />}
 
           {/* Actions (Right) */}
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-end gap-3 ml-auto z-10">
             {/* Global Arama */}
             {user && <GlobalSearch />}
 
