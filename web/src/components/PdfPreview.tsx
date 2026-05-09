@@ -35,7 +35,7 @@ export default function PdfPreview({ file }: { file: File }) {
         canvas.width = scaled.width;
         canvas.height = scaled.height;
 
-        await page.render({ canvasContext: canvas.getContext("2d")!, viewport: scaled }).promise;
+        await page.render({ canvas, canvasContext: canvas.getContext("2d")!, viewport: scaled }).promise;
         if (!cancelled) setLoading(false);
       } catch {
         if (!cancelled) { setLoading(false); setError(true); }

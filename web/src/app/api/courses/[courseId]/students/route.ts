@@ -3,12 +3,12 @@ import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/courses/[courseId]/students — Eğitmen için kurs öğrenci ilerlemesi
-export async function GET(req: Request, { params }: { params: { courseId: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ courseId: string }> }) {
   const { user, error } = verifyToken(req);
   if (error) return error;
   if (user!.role === "STUDENT") return NextResponse.json({ error: "Yetkisiz." }, { status: 403 });
 
-  const { courseId } = params;
+  const { courseId } = await params;
 
   // Kurs eğitmene ait mi kontrol et
   const course = await prisma.course.findFirst({
