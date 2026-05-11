@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -25,7 +25,15 @@ interface LiveRoom {
 type Tab = "live" | "scheduled" | "history";
 type SubFilter = "all" | "subscribed" | "unsubscribed";
 
-export default function LiveRoomsPage() {
+export default function LiveRoomsPageWrapper() {
+  return (
+    <Suspense>
+      <LiveRoomsPage />
+    </Suspense>
+  );
+}
+
+function LiveRoomsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
