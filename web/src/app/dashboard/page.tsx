@@ -288,6 +288,14 @@ export default function DashboardPage() {
         title: "PDF Yükleme Limitine Ulaştın",
         description: res.error || "Bu hafta için PDF yükleme limitini doldurdun. Daha fazla PDF yüklemek için planını yükselt.",
       });
+    } else if (res.code === "INAPPROPRIATE_CONTENT") {
+      const msg =
+        res.error ||
+        "Yüklediğiniz PDF uygunsuz veya eğitimle ilgisiz içerik barındırıyor. Lütfen geçerli bir ders notu yükleyin.";
+      setError(msg);
+      setGenerated(null);
+      setFile(null);
+      showToast(msg, "error");
     } else {
       setError(res.error || "Üretim başarısız.");
     }

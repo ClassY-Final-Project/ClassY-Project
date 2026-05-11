@@ -69,9 +69,40 @@ export async function POST(
       body: buildForm(),
     });
 
+    // Helper: AI motorundan gelen hatayı (özellikle 422 INAPPROPRIATE_CONTENT) parse et
+    const parseAiError = async (
+      res: Response
+    ): Promise<{ code?: string; message?: string; raw: string }> => {
+      const raw = await res.text();
+      try {
+        const parsed = JSON.parse(raw);
+        const detail = parsed?.detail;
+        if (detail && typeof detail === "object") {
+          return { code: detail.code, message: detail.message, raw };
+        }
+        if (typeof detail === "string") {
+          return { message: detail, raw };
+        }
+      } catch {
+        /* JSON değilse aşağıda raw kullanılır */
+      }
+      return { raw };
+    };
+
     if (!notesRes.ok) {
-      const errText = await notesRes.text();
-      console.error("AI motor hatası (notlar):", errText);
+      const aiErr = await parseAiError(notesRes);
+      console.error("AI motor hatası (notlar):", aiErr.raw);
+      if (notesRes.status === 422 && aiErr.code === "INAPPROPRIATE_CONTENT") {
+        return NextResponse.json(
+          {
+            error:
+              aiErr.message ||
+              "Yüklediğiniz PDF uygunsuz veya eğitimle ilgisiz içerik barındırıyor.",
+            code: "INAPPROPRIATE_CONTENT",
+          },
+          { status: 422 }
+        );
+      }
       return NextResponse.json({ error: "Çalışma notları üretilemedi." }, { status: 502 });
     }
 
@@ -82,8 +113,19 @@ export async function POST(
     });
 
     if (!quizRes.ok) {
-      const errText = await quizRes.text();
-      console.error("AI motor hatası (quiz):", errText);
+      const aiErr = await parseAiError(quizRes);
+      console.error("AI motor hatası (quiz):", aiErr.raw);
+      if (quizRes.status === 422 && aiErr.code === "INAPPROPRIATE_CONTENT") {
+        return NextResponse.json(
+          {
+            error:
+              aiErr.message ||
+              "Yüklediğiniz PDF uygunsuz veya eğitimle ilgisiz içerik barındırıyor.",
+            code: "INAPPROPRIATE_CONTENT",
+          },
+          { status: 422 }
+        );
+      }
       return NextResponse.json({ error: "Quiz üretilemedi." }, { status: 502 });
     }
 
