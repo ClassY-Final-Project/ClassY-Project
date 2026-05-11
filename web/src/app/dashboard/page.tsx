@@ -237,24 +237,7 @@ export default function DashboardPage() {
     setFlipped(new Set());
   }
 
-  const PDF_LIMITS: Record<string, number> = { FREE: 1, GOLD: 5, PLATINUM: 10 };
-
   function handleNewUploadClick(weekId: string) {
-    const activePlan =
-      user?.planExpiresAt && new Date(user.planExpiresAt) > new Date()
-        ? (user.plan ?? "FREE")
-        : "FREE";
-    const limit = PDF_LIMITS[activePlan] ?? 1;
-    const currentCount = weekDetail?.notes.length ?? 0;
-    if (currentCount >= limit) {
-      const planLabel =
-        activePlan === "FREE" ? "Ücretsiz" : activePlan === "GOLD" ? "Gold" : "Platinum";
-      setUpgradeModal({
-        title: "PDF Yükleme Limitine Ulaştın",
-        description: `${planLabel} planında her hafta en fazla ${limit} PDF yükleyebilirsiniz. Daha fazla yüklemek için planını yükselt.`,
-      });
-      return;
-    }
     startNewUpload(weekId);
   }
 
@@ -285,7 +268,7 @@ export default function DashboardPage() {
     } else if (res.code === "PDF_LIMIT_EXCEEDED") {
       setUpgradeModal({
         title: "PDF Yükleme Limitine Ulaştın",
-        description: res.error || "Bu hafta için PDF yükleme limitini doldurdun. Daha fazla PDF yüklemek için planını yükselt.",
+        description: res.error || "PDF yükleme limitini doldurdun. Daha fazla PDF yüklemek için planını yükselt.",
       });
     } else if (res.code === "INAPPROPRIATE_CONTENT") {
       const msg =
