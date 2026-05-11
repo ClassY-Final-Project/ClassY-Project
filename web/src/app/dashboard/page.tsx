@@ -329,7 +329,11 @@ export default function DashboardPage() {
   function toggleFlip(i: number) {
     setFlipped((prev) => {
       const n = new Set(prev);
-      n.has(i) ? n.delete(i) : n.add(i);
+      if (n.has(i)) {
+        n.delete(i);
+      } else {
+        n.add(i);
+      }
       return n;
     });
   }
@@ -347,7 +351,11 @@ export default function DashboardPage() {
         onClose={() => setUpgradeModal(null)}
       />
     )}
-    <div className="flex flex-1 w-full overflow-hidden bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <div
+      className="flex flex-1 w-full overflow-hidden bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950"
+      data-focus-container
+      data-focus-surface
+    >
       <div className="flex flex-1 w-full">
         {/* 1. KOLON */}
         <aside className="w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-sm overflow-y-auto">
@@ -456,7 +464,7 @@ export default function DashboardPage() {
                                   style={{ width: `${c.progressPct}%` }}
                                 />
                               </div>
-                              <span className="text-[10px] text-zinc-400 shrink-0">{c.progressPct}%</span>
+                              <span className="text-xs text-zinc-400 shrink-0">{c.progressPct}%</span>
                             </div>
                           )}
                         </Link>
@@ -495,12 +503,12 @@ export default function DashboardPage() {
                             <span className="flex-1 min-w-0">
                               <span className="block truncate text-xs font-medium">{q.title}</span>
                               {q.score !== null ? (
-                                <span className={`text-[10px] font-semibold ${
+                                <span className={`text-xs font-semibold ${
                                   q.score >= 70 ? "text-emerald-600 dark:text-emerald-400" :
                                   q.score >= 50 ? "text-amber-500" : "text-red-500"
                                 }`}>%{q.score}</span>
                               ) : (
-                                <span className="text-[10px] text-violet-500 font-medium">Çözülmedi</span>
+                                <span className="text-xs text-violet-500 font-medium">Çözülmedi</span>
                               )}
                             </span>
                           </Link>
@@ -539,7 +547,7 @@ export default function DashboardPage() {
                 {studyStats.map((s) => (
                   <div key={s.subject} className="px-2 py-1.5 mb-1">
                     <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 truncate">{s.subject}</p>
-                    <p className="text-[10px] text-zinc-400">{formatDuration(s.studySeconds)} · {s.noteCount} not</p>
+                    <p className="text-xs text-zinc-400">{formatDuration(s.studySeconds)} · {s.noteCount} not</p>
                   </div>
                 ))}
               </div>
@@ -549,8 +557,8 @@ export default function DashboardPage() {
 
         {/* Karne Ana İçeriği */}
         {activeView === "karne" && (
-          <main className="flex-1 overflow-y-auto">
-            <div className="max-w-4xl mx-auto px-6 py-8">
+          <main className="flex-1 overflow-y-auto" data-focus-main>
+            <div className="max-w-4xl mx-auto px-6 py-8" data-focus-reading-width data-focus-card-stack>
               {/* Başlık */}
               <div className="flex items-center justify-between mb-6">
                 <div>
@@ -712,10 +720,10 @@ export default function DashboardPage() {
                               <div className="flex items-start justify-between gap-3 mb-2">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1.5 mb-0.5">
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                                    <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
                                       {q.isAssigned ? "📨 Eğitmen" : "🤖 AI"}
                                     </span>
-                                    <span className="text-[10px] text-zinc-400">{q.subject}</span>
+                                    <span className="text-xs text-zinc-400">{q.subject}</span>
                                   </div>
                                   <p className="font-semibold text-zinc-900 dark:text-white text-sm truncate">{q.title}</p>
                                   {q.isAssigned && q.instructor && (
@@ -736,7 +744,7 @@ export default function DashboardPage() {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[10px] text-zinc-400 mb-3">
+                              <p className="text-xs text-zinc-400 mb-3">
                                 {new Date(q.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}
                               </p>
                               <a
@@ -870,7 +878,10 @@ export default function DashboardPage() {
           <>
             {/* 2. KOLON: Haftalar */}
             {activeSubject && (
-              <aside className="w-56 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/40 backdrop-blur-sm overflow-y-auto">
+              <aside
+                className="w-56 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/40 backdrop-blur-sm overflow-y-auto"
+                data-focus-sidebar
+              >
                 <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Ders</p>
@@ -913,7 +924,10 @@ export default function DashboardPage() {
 
             {/* 3. KOLON: PDF listesi */}
             {activeSubject && openWeekId && weekDetail && (
-              <aside className="w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 backdrop-blur-sm overflow-y-auto">
+              <aside
+                className="w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 backdrop-blur-sm overflow-y-auto"
+                data-focus-sidebar
+              >
                 <div className="p-4 border-b border-zinc-100 dark:border-zinc-800">
                   <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                     {weekDetail.week.weekNumber}. Hafta
@@ -950,7 +964,7 @@ export default function DashboardPage() {
                         <span className="text-base shrink-0">📄</span>
                         <span className="flex-1 min-w-0">
                           <span className="block truncate text-xs font-medium">{n.fileName}</span>
-                          <span className="block text-[10px] opacity-60">
+                          <span className="block text-xs opacity-60">
                             {new Date(n.uploadedAt).toLocaleDateString("tr-TR")}
                           </span>
                         </span>
@@ -962,7 +976,7 @@ export default function DashboardPage() {
             )}
 
             {/* İçerik */}
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1 overflow-y-auto" data-focus-main>
               {!activeSubject ? (
                 <EmptyState
                   icon="📚"
@@ -996,7 +1010,7 @@ export default function DashboardPage() {
                   toggleFlip={toggleFlip}
                 />
               ) : (
-                <div className="max-w-3xl mx-auto px-6 py-10">
+                <div className="max-w-3xl mx-auto px-6 py-10" data-focus-reading-width data-focus-card-stack>
                   <div className="mb-8">
                     <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
                       {activeSubject.name} · {weekDetail?.week.weekNumber}. Hafta
@@ -1118,7 +1132,7 @@ function UploadView(props: {
   const { subjectName, weekNumber, file, fileInputRef, onFile, onGenerate, working, error, generated } = props;
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-10">
+    <div className="max-w-3xl mx-auto px-6 py-10" data-focus-reading-width data-focus-card-stack>
       <div className="mb-10 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-widest mb-4">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
@@ -1210,7 +1224,7 @@ function SavedView({
   toggleFlip: (i: number) => void;
 }) {
   return (
-    <div className="space-y-10">
+    <div className="space-y-10" data-focus-reading-width data-focus-card-stack>
       {note.summary && (
         <section>
           <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-3">📝 Özet</h2>
@@ -1286,7 +1300,7 @@ function FlashcardGrid({
             <div className={`flashcard-inner${flipped.has(i) ? " flipped" : ""}`} style={{ minHeight: 160 }}>
               <div className="flashcard-face bg-white dark:bg-[#09090b] border border-zinc-200/60 dark:border-zinc-800 shadow-sm group-hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[10px] font-bold px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-md uppercase tracking-widest">Kart {i + 1}</div>
+                  <div className="text-xs font-bold px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-md uppercase tracking-widest">Kart {i + 1}</div>
                 </div>
                 <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 leading-relaxed">{card.front}</p>
                 <div className="mt-auto pt-4 text-xs text-zinc-400 font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1296,7 +1310,7 @@ function FlashcardGrid({
               </div>
               <div className="flashcard-face flashcard-back bg-linear-to-br from-indigo-500 to-violet-600 border border-indigo-400/50 shadow-xl shadow-indigo-500/20">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[10px] font-bold px-2 py-1 bg-white/20 text-white rounded-md uppercase tracking-widest">Cevap</div>
+                  <div className="text-xs font-bold px-2 py-1 bg-white/20 text-white rounded-md uppercase tracking-widest">Cevap</div>
                 </div>
                 <p className="text-sm font-medium text-white leading-relaxed">{card.back}</p>
               </div>
@@ -1325,7 +1339,7 @@ function ResultView({
 
       <section>
         <h2 className="text-xl font-black text-zinc-900 dark:text-white mb-4 tracking-tight">📝 Özet</h2>
-        <div className="bg-white dark:bg-[#09090b] rounded-3xl p-8 shadow-sm border border-zinc-200/60 dark:border-zinc-800 leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap text-[15px] font-medium selection:bg-indigo-500/30">
+        <div className="bg-white dark:bg-[#09090b] rounded-3xl p-8 shadow-sm border border-zinc-200/60 dark:border-zinc-800 leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap text-base font-medium selection:bg-indigo-500/30">
           {generated.summary}
         </div>
       </section>

@@ -51,11 +51,6 @@ export default function QuizPage() {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
 
-  useEffect(() => {
-    if (!quizId) return;
-    loadQuiz();
-  }, [quizId]);
-
   async function loadQuiz() {
     setFetching(true);
     const res = await getQuiz(quizId);
@@ -85,6 +80,14 @@ export default function QuizPage() {
     }
     setFetching(false);
   }
+
+  useEffect(() => {
+    if (!quizId) return;
+    const timeout = window.setTimeout(() => {
+      void loadQuiz();
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [quizId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSubmit() {
     if (!quiz) return;
@@ -130,7 +133,7 @@ export default function QuizPage() {
 
     return (
       <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
-        <main className="max-w-xl mx-auto px-6 py-14 space-y-6">
+        <main className="max-w-xl mx-auto px-6 py-14 space-y-6" data-focus-main data-focus-reading-width data-focus-card-stack>
           {/* Ana sonuç kartı */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-8 text-center shadow-sm">
             <div className="text-4xl mb-3">{emoji}</div>
@@ -168,12 +171,12 @@ export default function QuizPage() {
                         <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">{i + 1}. {q.questionText}</p>
                         {!isCorrect && (
                           <div className="space-y-1">
-                            <p className="text-[11px] text-red-600 dark:text-red-400">Senin cevabın: <span className="font-semibold">{q.userAnswer || "—"}</span></p>
-                            <p className="text-[11px] text-emerald-600 dark:text-emerald-400">Doğru cevap: <span className="font-semibold">{q.correctAnswer}</span></p>
+                            <p className="text-xs text-red-600 dark:text-red-400">Senin cevabın: <span className="font-semibold">{q.userAnswer || "—"}</span></p>
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400">Doğru cevap: <span className="font-semibold">{q.correctAnswer}</span></p>
                           </div>
                         )}
                         {isCorrect && (
-                          <p className="text-[11px] text-emerald-600 dark:text-emerald-400">Doğru: <span className="font-semibold">{q.correctAnswer}</span></p>
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400">Doğru: <span className="font-semibold">{q.correctAnswer}</span></p>
                         )}
                       </div>
                     </div>
@@ -185,16 +188,19 @@ export default function QuizPage() {
 
           {/* Konu skor geçmişi */}
           {history.length > 1 && (
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+            <div
+              className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm"
+              data-focus-hidden
+            >
               <h2 className="text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-4">📈 {quiz.subject} — Skor Geçmişi</h2>
               <div className="flex items-end gap-1.5 h-20">
-                {[...history].reverse().map((h, i) => {
+                {[...history].reverse().map((h) => {
                   const pct = h.score ?? 0;
                   const color = pct >= 80 ? "bg-emerald-500" : pct >= 50 ? "bg-amber-400" : "bg-red-400";
                   const isThis = h.id === quizId;
                   return (
                     <div key={h.id} className="flex-1 flex flex-col items-center gap-1 group relative">
-                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] text-zinc-400 opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity">{pct}%</div>
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs text-zinc-400 opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity">{pct}%</div>
                       <div
                         className={`w-full rounded-t-sm transition-all ${color} ${isThis ? "ring-2 ring-offset-1 ring-indigo-400" : ""}`}
                         style={{ height: `${Math.max(4, pct * 0.75)}px` }}
@@ -203,7 +209,7 @@ export default function QuizPage() {
                   );
                 })}
               </div>
-              <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
+              <div className="flex justify-between text-xs text-zinc-400 mt-1">
                 <span>En eski</span><span>En yeni</span>
               </div>
             </div>
@@ -228,7 +234,7 @@ export default function QuizPage() {
   // ─── Quiz Ekranı ───
   return (
     <div className="w-full flex-1 bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
-      <main className="max-w-3xl mx-auto px-6 py-10">
+      <main className="max-w-3xl mx-auto px-6 py-10" data-focus-main data-focus-reading-width>
         <div className="flex items-start justify-between mb-8">
           <div>
             <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 mb-2 inline-block">
