@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/Toast";
@@ -42,7 +42,15 @@ type Step = "build" | "assign";
 type BuildMode = "manual" | "pdf";
 type PageTab = "create" | "sent";
 
-export default function InstructorQuizPage() {
+export default function InstructorQuizPageWrapper() {
+  return (
+    <Suspense>
+      <InstructorQuizPage />
+    </Suspense>
+  );
+}
+
+function InstructorQuizPage() {
   const { user, token, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();

@@ -67,6 +67,14 @@ export async function GET(request: Request) {
     else if (filter === "ended") where.status = "ENDED";
     else where.status = { in: ["LIVE", "SCHEDULED"] };
 
+    if (user.role === "STUDENT") {
+      const subs = await prisma.subscription.findMany({
+        where: { studentId: user.userId },
+        select: { instructorId: true },
+      });
+      where.instructorId = { in: subs.map((s) => s.instructorId) };
+    }
+
     const rooms = await (prisma as any).liveRoom.findMany({
       where,
       include: {

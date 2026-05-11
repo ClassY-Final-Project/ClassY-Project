@@ -40,10 +40,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl">
-            C
-          </div>
-          <span className="font-bold text-2xl text-zinc-900 dark:text-white">ClassY</span>
+          <span className="font-black text-3xl tracking-tight text-zinc-900 dark:text-white" translate="no">ClassY</span>
         </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 p-8">

@@ -20,7 +20,6 @@ import {
 } from "@/lib/apiClient";
 import { DashboardSkeleton } from "@/components/Skeleton";
 import { useToast } from "@/components/Toast";
-import PdfPreview from "@/components/PdfPreview";
 import StreakWidget from "@/components/StreakWidget";
 import { useConfirm } from "@/components/ConfirmModal";
 import UpgradeModal from "@/components/UpgradeModal";
@@ -1176,7 +1175,6 @@ function UploadView(props: {
         )}
       </div>
 
-      {file && <PdfPreview file={file} />}
 
       {error && (
         <div className="mt-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm">

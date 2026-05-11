@@ -79,6 +79,21 @@ export default function PricingPage() {
   const [paying, setPaying] = useState(false);
   const [done, setDone] = useState(false);
 
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCVV, setCardCVV] = useState("");
+  const [cardName, setCardName] = useState("");
+
+  function formatCardNumber(val: string) {
+    return val.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
+  }
+
+  function formatExpiry(val: string) {
+    const digits = val.replace(/\D/g, "").slice(0, 4);
+    if (digits.length >= 3) return digits.slice(0, 2) + "/" + digits.slice(2);
+    return digits;
+  }
+
   async function handleSubscribe() {
     if (!user || !token) { router.push("/login"); return; }
     if (!selectedPlan) return;
@@ -204,7 +219,10 @@ export default function PricingPage() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => setSelectedPlan(selectedPlan === plan.id ? null : plan.id)}
+                    onClick={() => {
+                      setSelectedPlan(selectedPlan === plan.id ? null : plan.id);
+                      setCardNumber(""); setCardExpiry(""); setCardCVV(""); setCardName("");
+                    }}
                     className={`w-full py-3 rounded-xl text-sm font-bold transition-all duration-200 ${plan.btnClass}`}
                   >
                     {selectedPlan === plan.id ? "✓ Seçildi" : `${plan.name}'a Geç`}
@@ -234,6 +252,55 @@ export default function PricingPage() {
                   <p className="text-white/60 text-xs mb-2 font-medium tracking-widest">CLASSY PAY</p>
                   <p className="text-white font-bold text-xl">{planObj.priceLabel} / ay</p>
                   <p className="text-white/70 text-sm mt-0.5">{planObj.name} Plan</p>
+                </div>
+              </div>
+
+              {/* Kart Bilgileri */}
+              <div className="space-y-3 mb-5">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Kart Numarası</label>
+                  <input
+                    type="text"
+                    placeholder="1234 5678 9012 3456"
+                    maxLength={19}
+                    value={cardNumber}
+                    onChange={e => setCardNumber(formatCardNumber(e.target.value))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Son Kullanma</label>
+                    <input
+                      type="text"
+                      placeholder="AA/YY"
+                      maxLength={5}
+                      value={cardExpiry}
+                      onChange={e => setCardExpiry(formatExpiry(e.target.value))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">CVV</label>
+                    <input
+                      type="text"
+                      placeholder="123"
+                      maxLength={3}
+                      value={cardCVV}
+                      onChange={e => setCardCVV(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Kart Sahibi</label>
+                  <input
+                    type="text"
+                    placeholder="Ad Soyad"
+                    value={cardName}
+                    onChange={e => setCardName(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
                 </div>
               </div>
 
