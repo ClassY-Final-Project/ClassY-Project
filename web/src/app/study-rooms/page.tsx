@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/Toast";
@@ -49,18 +49,7 @@ export default function StudyRoomsPage() {
     roomAccess: "PUBLIC",
   });
 
-  useEffect(() => {
-    if (!loading && !user) router.replace("/login");
-  }, [user, loading, router]);
-
-  useEffect(() => {
-    if (!token) return;
-    loadRooms();
-    const interval = setInterval(loadRooms, 15000);
-    return () => clearInterval(interval);
-  }, [token]);
-
-  async function loadRooms() {
+  const loadRooms = useCallback(async () => {
     try {
       const res = await fetch("/api/study-rooms", {
         headers: { Authorization: `Bearer ${token}` },
@@ -73,7 +62,18 @@ export default function StudyRoomsPage() {
     } finally {
       setFetching(false);
     }
-  }
+  }, [token]);
+
+  useEffect(() => {
+    if (!loading && !user) router.replace("/login");
+  }, [user, loading, router]);
+
+  useEffect(() => {
+    if (!token) return;
+    loadRooms();
+    const interval = setInterval(loadRooms, 15000);
+    return () => clearInterval(interval);
+  }, [token, loadRooms]);
 
   async function createRoom() {
     if (!form.name.trim()) { showToast("Oda adi bos olamaz.", "error"); return; }

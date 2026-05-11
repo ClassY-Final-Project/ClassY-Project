@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -54,24 +54,7 @@ function LiveRoomsPage() {
 
   const isInstructor = user?.role === "INSTRUCTOR" || user?.role === "ADMIN";
 
-  useEffect(() => {
-    if (!loading && !user) router.replace("/login");
-  }, [user, loading, router]);
-
-  useEffect(() => {
-    if (!user) return;
-    setSubFilter("all");
-    loadRooms();
-  }, [user, tab]);
-
-  // Canlı sekmesinde otomatik yenileme
-  useEffect(() => {
-    if (tab !== "live") return;
-    const interval = setInterval(loadRooms, 15000);
-    return () => clearInterval(interval);
-  }, [tab]);
-
-  async function loadRooms() {
+  const loadRooms = useCallback(async () => {
     setFetching(true);
     setError("");
     const token = localStorage.getItem("classy_token");
@@ -83,7 +66,37 @@ function LiveRoomsPage() {
     if (res.ok) setRooms(json.rooms || []);
     else setError(json.error || "Yüklenemedi.");
     setFetching(false);
+  }, [tab]);
+
+  const [prevUser, setPrevUser] = useState(user?.id);
+  const [prevTab, setPrevTab] = useState(tab);
+
+  if (user?.id !== prevUser) {
+    setPrevUser(user?.id);
+    setSubFilter("all");
   }
+  
+  if (tab !== prevTab) {
+    setPrevTab(tab);
+    setSubFilter("all");
+  }
+
+  useEffect(() => {
+    if (!loading && !user) router.replace("/login");
+  }, [user, loading, router]);
+
+  useEffect(() => {
+    if (!user) return;
+    const t = setTimeout(() => loadRooms(), 0);
+    return () => clearTimeout(t);
+  }, [user, loadRooms]);
+
+  // Canlı sekmesinde otomatik yenileme
+  useEffect(() => {
+    if (tab !== "live") return;
+    const interval = setInterval(loadRooms, 15000);
+    return () => clearInterval(interval);
+  }, [tab, loadRooms]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();

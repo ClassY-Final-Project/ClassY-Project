@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -53,15 +53,7 @@ function InstructorsPage() {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
 
-  useEffect(() => {
-    if (!user) return;
-    loadAll();
-    // Otomatik abone olmak için URL param kontrolü
-    const subscribeId = searchParams.get("subscribe");
-    if (subscribeId) setTab("all");
-  }, [user]);
-
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     setFetching(true);
     const token = localStorage.getItem("classy_token");
     const [instRes, subRes] = await Promise.all([
@@ -72,7 +64,17 @@ function InstructorsPage() {
     if (instRes.ok) setInstructors(instJson.instructors || []);
     if (subRes.ok) setSubscriptions(subJson.subscriptions || []);
     setFetching(false);
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const subscribeId = searchParams.get("subscribe");
+    const t = setTimeout(() => {
+      loadAll();
+      if (subscribeId) setTab("all");
+    }, 0);
+    return () => clearTimeout(t);
+  }, [user, loadAll, searchParams]);
 
   function openPayment(instructor: Instructor) {
     setPaymentTarget(instructor);

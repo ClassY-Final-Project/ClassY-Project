@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -35,12 +35,7 @@ export default function InstructorProfilePage() {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
 
-  useEffect(() => {
-    if (!user || !instructorId) return;
-    loadInstructor();
-  }, [user, instructorId]);
-
-  async function loadInstructor() {
+  const loadInstructor = useCallback(async () => {
     setFetching(true);
     const token = localStorage.getItem("classy_token");
     const res = await fetch(`/api/instructors?id=${instructorId}`, {
@@ -52,7 +47,13 @@ export default function InstructorProfilePage() {
       setInstructor(found || null);
     }
     setFetching(false);
-  }
+  }, [instructorId]);
+
+  useEffect(() => {
+    if (!user || !instructorId) return;
+    const t = setTimeout(() => loadInstructor(), 0);
+    return () => clearTimeout(t);
+  }, [user, instructorId, loadInstructor]);
 
   async function handleSubscribe() {
     if (!instructor) return;

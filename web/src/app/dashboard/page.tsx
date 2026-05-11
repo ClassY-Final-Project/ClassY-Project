@@ -348,7 +348,10 @@ export default function DashboardPage() {
     >
       <div className="flex flex-1 w-full">
         {/* 1. KOLON */}
-        <aside className="w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-sm overflow-y-auto">
+        <aside
+          className="w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-sm overflow-y-auto"
+          {...(activeView === "karne" || view !== null ? { "data-focus-sidebar": true } : {})}
+        >
           <div className="p-4">
             {/* Görünüm Seçici */}
             <div className="flex gap-1 mb-4 p-1 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl">
@@ -870,7 +873,7 @@ export default function DashboardPage() {
             {activeSubject && (
               <aside
                 className="w-56 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/40 backdrop-blur-sm overflow-y-auto"
-                data-focus-sidebar
+                {...(view !== null ? { "data-focus-sidebar": true } : {})}
               >
                 <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2">
                   <div className="min-w-0">
@@ -916,7 +919,7 @@ export default function DashboardPage() {
             {activeSubject && openWeekId && weekDetail && (
               <aside
                 className="w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 backdrop-blur-sm overflow-y-auto"
-                data-focus-sidebar
+                {...(view !== null ? { "data-focus-sidebar": true } : {})}
               >
                 <div className="p-4 border-b border-zinc-100 dark:border-zinc-800">
                   <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
