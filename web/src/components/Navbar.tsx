@@ -120,18 +120,18 @@ export default function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-zinc-200/50 dark:border-white/5 bg-white/70 dark:bg-[#09090b]/70 backdrop-blur-xl">
-        <div className="w-full relative flex items-center px-6 py-4 min-h-[64px]">
+        <div className="w-full flex items-center px-6 py-4 min-h-[64px] gap-3">
           {/* Logo (Left) */}
-          <div className="flex items-center justify-start z-10">
+          <div className="flex items-center shrink-0">
             <Link href={user?.role === "ADMIN" ? "/admin" : user ? "/dashboard" : "/"} className="flex items-center gap-0 group w-fit">
               <Image src="/logo.png" alt="ClassY Logo" width={44} height={44} className="w-11 h-11 object-contain" priority />
               <span className="font-extrabold text-2xl tracking-tight transition-transform group-hover:scale-105" style={{ color: '#763fff' }} translate="no">classY</span>
             </Link>
           </div>
 
-          {/* Desktop Nav (Tam Ortalı) */}
+          {/* Desktop Nav (Ortalı, flex-1) */}
           {user ? (
-            <nav className="hidden lg:flex items-center gap-0.5 overflow-hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <nav className="hidden xl:flex flex-1 items-center justify-center gap-0.5 min-w-0 overflow-hidden">
               {navLinks.map(l => (
                 <Link key={l.href} href={l.href} className={`px-3 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap ${
                   pathname === l.href || pathname.startsWith(l.href + "/")
@@ -142,10 +142,10 @@ export default function Navbar() {
                 </Link>
               ))}
             </nav>
-          ) : <div />}
+          ) : <div className="flex-1" />}
 
           {/* Actions (Right) */}
-          <div className="flex items-center justify-end gap-3 ml-auto z-10">
+          <div className="flex items-center justify-end gap-3 ml-auto shrink-0">
             {/* Global Arama */}
             {user && <GlobalSearch />}
 
@@ -224,11 +224,11 @@ export default function Navbar() {
             {/* Plan badge / upgrade button */}
             {user && !isInstructor && (
               activePlan === "FREE" ? (
-                <Link href="/pricing" className="hidden md:inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors whitespace-nowrap">
+                <Link href="/pricing" className="hidden lg:inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors whitespace-nowrap">
                   ⭐ Planını Yükselt
                 </Link>
               ) : (
-                <Link href="/pricing" className={`hidden md:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold transition-opacity hover:opacity-75 ${planBadge.cls}`}>
+                <Link href="/pricing" className={`hidden lg:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold transition-opacity hover:opacity-75 ${planBadge.cls}`}>
                   {planBadge.label}
                 </Link>
               )
@@ -236,7 +236,7 @@ export default function Navbar() {
 
             {/* Desktop Auth */}
             {user ? (
-              <div className="hidden md:flex items-center gap-3 pl-4 border-l border-zinc-200 dark:border-white/10">
+              <div className="hidden lg:flex items-center gap-3 pl-4 border-l border-zinc-200 dark:border-white/10">
                 <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <div className="flex flex-col items-end">
                     <span className="text-sm font-bold text-zinc-900 dark:text-white leading-none">{user.fullName || "Kullanıcı"}</span>
@@ -257,7 +257,7 @@ export default function Navbar() {
                 </button>
               </div>
             ) : pathname !== "/" ? (
-              <div className="hidden md:flex items-center gap-3">
+              <div className="hidden lg:flex items-center gap-3">
                 <Link href="/login" className="px-5 py-2.5 text-sm font-bold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors">Giriş Yap</Link>
                 <Link href="/register" className="px-5 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-full font-bold text-sm hover:scale-105 transition-transform shadow-md">Kayıt Ol</Link>
               </div>
@@ -265,7 +265,7 @@ export default function Navbar() {
 
             {/* Hamburger (mobil) */}
             <button onClick={() => setMenuOpen(v => !v)}
-              className="md:hidden w-10 h-10 flex flex-col items-center justify-center gap-1.5 rounded-full bg-zinc-100 dark:bg-white/5 text-zinc-500 hover:text-indigo-600 transition-colors">
+              className="xl:hidden w-10 h-10 flex flex-col items-center justify-center gap-1.5 rounded-full bg-zinc-100 dark:bg-white/5 text-zinc-500 hover:text-indigo-600 transition-colors">
               <span className={`block w-5 h-0.5 bg-current transition-all ${menuOpen ? "rotate-45 translate-y-2" : ""}`} />
               <span className={`block w-5 h-0.5 bg-current transition-all ${menuOpen ? "opacity-0" : ""}`} />
               <span className={`block w-5 h-0.5 bg-current transition-all ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
@@ -276,7 +276,7 @@ export default function Navbar() {
 
       {/* Mobil Menü */}
       {menuOpen && (
-        <div className="md:hidden fixed inset-x-0 top-16 z-40 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-2xl border-b border-zinc-200/50 dark:border-white/5 shadow-2xl px-6 py-6 space-y-2">
+        <div className="xl:hidden fixed inset-x-0 top-16 z-40 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-2xl border-b border-zinc-200/50 dark:border-white/5 shadow-2xl px-6 py-6 space-y-2">
           {navLinks.map(l => (
             <Link key={l.href} href={l.href} className={`block px-5 py-4 rounded-2xl text-base font-bold transition-colors ${
               pathname === l.href || pathname.startsWith(l.href + "/")
