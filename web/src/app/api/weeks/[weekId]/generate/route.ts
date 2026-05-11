@@ -2,18 +2,15 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const PDF_LIMITS: Record<string, number> = { FREE: 1, GOLD: 5, PLATINUM: 10 };
-
-// POST /api/weeks/[weekId]/generate
-// PDF yükler, hem özet+flashcard hem quiz üretir, hepsini haftaya bağlar.
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ weekId: string }> }
+  { params }: { params: Promise<{ weekId: string }> },
 ) {
   try {
     const { user, error } = verifyToken(request);
     if (error) return error;
-    if (!user) return NextResponse.json({ error: "Yetkisiz." }, { status: 401 });
+    if (!user)
+      return NextResponse.json({ error: "Yetkisiz." }, { status: 401 });
 
     const { weekId } = await params;
 
@@ -25,46 +22,74 @@ export async function POST(
       return NextResponse.json({ error: "Hafta bulunamadı." }, { status: 404 });
     }
 
-    // Plan bazlı PDF limit kontrolü
-    const dbUser = await prisma.user.findUnique({ where: { id: user.userId }, select: { plan: true, planExpiresAt: true } });
-    const plan = (dbUser?.planExpiresAt && dbUser.planExpiresAt > new Date()) ? (dbUser.plan ?? "FREE") : "FREE";
-    const pdfLimit = PDF_LIMITS[plan] ?? 1;
+    // 1. Global PDF ve Plan Limiti Kontrolü
+    const PDF_LIMITS: Record<string, number> = {
+      FREE: 3,
+      GOLD: 8,
+      PLATINUM: 20,
+    };
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { plan: true, planExpiresAt: true },
+    });
 
-    // Bu haftaya kaç not yüklenmiş?
-    const weekNoteCount = await prisma.studyNote.count({ where: { weekId } });
-    if (weekNoteCount >= pdfLimit) {
-      // Plan adını Türkçeleştir
-      const planLabel = plan === "FREE" ? "Ücretsiz" : plan === "GOLD" ? "Gold" : plan === "PLATINUM" ? "Platinum" : plan;
-      return NextResponse.json({
-        error: `${planLabel} planında her hafta en fazla ${pdfLimit} PDF yükleyebilirsiniz.`,
-        code: "PDF_LIMIT_EXCEEDED",
-        plan,
-        limit: pdfLimit,
-      }, { status: 403 });
+    const currentPlan =
+      dbUser?.planExpiresAt && dbUser.planExpiresAt > new Date()
+        ? (dbUser.plan ?? "FREE")
+        : "FREE";
+    const pdfLimit = PDF_LIMITS[currentPlan] ?? 3;
+
+    // Öğrencinin sistemdeki TOPLAM pdf/içerik üretim sayısını bul (Notlar + Tekil Sınavlar)
+    const totalNotes = await prisma.studyNote.count({
+      where: { studentId: user.userId },
+    });
+    const totalStandaloneQuizzes = await prisma.quiz.count({
+      where: { studentId: user.userId, noteId: null },
+    });
+    const totalUsage = totalNotes + totalStandaloneQuizzes;
+
+    if (totalUsage >= pdfLimit) {
+      const planLabel =
+        currentPlan === "FREE"
+          ? "Ücretsiz"
+          : currentPlan === "GOLD"
+            ? "Gold"
+            : "Platinum";
+      return NextResponse.json(
+        {
+          error: `Limit aşıldı! ${planLabel} planında toplam en fazla ${pdfLimit} PDF/İçerik yükleyebilirsiniz. Sınırı kaldırmak için planınızı yükseltin.`,
+          code: "PDF_LIMIT_EXCEEDED",
+          plan: currentPlan,
+          limit: pdfLimit,
+        },
+        { status: 403 },
+      );
     }
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const questionCount = Number(formData.get("question_count") || 10);
 
     if (!file) {
       return NextResponse.json({ error: "PDF gerekli." }, { status: 400 });
     }
 
-    // Aynı dosyayı iki ayrı endpointe paralel gönder
     const fileBuffer = await file.arrayBuffer();
 
     const buildForm = (extra?: Record<string, string>) => {
       const fd = new FormData();
-      fd.append("file", new Blob([fileBuffer], { type: file.type || "application/pdf" }), file.name);
+      fd.append(
+        "file",
+        new Blob([fileBuffer], { type: file.type || "application/pdf" }),
+        file.name,
+      );
       if (extra) Object.entries(extra).forEach(([k, v]) => fd.append(k, v));
       return fd;
     };
 
-    const PYTHON_BASE = "http://127.0.0.1:8000";
+    // Vercel / Render Uyumluluğu: URL'i .env'den al, yoksa locale düş
+    const AI_URL = process.env.AI_ENGINE_URL || "http://127.0.0.1:8000";
 
-    // Önce notları üret, ardından quiz — paralel istek Gemini 503 hatasına yol açıyor
-    const notesRes = await fetch(`${PYTHON_BASE}/generate-study-notes`, {
+    const notesRes = await fetch(`${AI_URL}/generate-study-notes`, {
       method: "POST",
       body: buildForm(),
     });
@@ -100,14 +125,16 @@ export async function POST(
               "Yüklediğiniz PDF uygunsuz veya eğitimle ilgisiz içerik barındırıyor.",
             code: "INAPPROPRIATE_CONTENT",
           },
-          { status: 422 }
+          { status: 422 },
         );
       }
-      return NextResponse.json({ error: "Çalışma notları üretilemedi." }, { status: 502 });
+      return NextResponse.json(
+        { error: "Çalışma notları üretilemedi." },
+        { status: 502 },
+      );
     }
 
-    // Quiz her zaman tam 10 soru üretir
-    const quizRes = await fetch(`${PYTHON_BASE}/generate-quiz`, {
+    const quizRes = await fetch(`${AI_URL}/generate-quiz`, {
       method: "POST",
       body: buildForm({ question_count: "10" }),
     });
@@ -135,10 +162,8 @@ export async function POST(
     const summary = notesData.data?.summary || "";
     const flashcards = notesData.data?.flashcards || [];
     const quizItems = quizData.quiz || [];
-
     const subjectName = week.subject.name;
 
-    // 1) StudyNote oluştur
     const note = await prisma.studyNote.create({
       data: {
         studentId: user.userId,
@@ -157,11 +182,10 @@ export async function POST(
       },
     });
 
-    // 2) Quiz oluştur
     const quiz = await prisma.quiz.create({
       data: {
         studentId: user.userId,
-        title: `${file.name} - Quiz`,
+        title: `${file.name} - Sınav`,
         subject: subjectName,
         weekId: week.id,
         noteId: note.id,

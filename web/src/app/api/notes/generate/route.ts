@@ -5,37 +5,28 @@ import { prisma } from "@/lib/prisma";
 /**
  * @swagger
  * /api/notes/generate:
- *   post:
- *     summary: PDF dosyasından özet ve çalışma kartları (flashcard) üretir
- *     tags: [Notes]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               file:
- *                 type: string
- *                 format: binary
- *                 description: Yüklenecek PDF dosyası
- *     responses:
- *       200:
- *         description: Not ve kartlar başarıyla üretildi ve veritabanına kaydedildi
- *       400:
- *         description: Dosya eksik veya geçersiz
- *       401:
- *         description: Yetkisiz erişim
- *       502:
- *         description: Python AI motoru yanıt vermedi
- *       500:
- *         description: Sunucu tarafında hata
+ * post:
+ * summary: PDF dosyasından özet ve çalışma kartları (flashcard) üretir
+ * tags: [Notes]
+ * security:
+ * - BearerAuth: []
+ * requestBody:
+ * required: true
+ * content:
+ * multipart/form-data:
+ * schema:
+ * type: object
+ * properties:
+ * file:
+ * type: string
+ * format: binary
+ * description: Yüklenecek PDF dosyası
+ * responses:
+ * 200:
+ * description: Not ve kartlar başarıyla üretildi
  */
 export async function POST(request: Request) {
   try {
-    // 1. Güvenlik Kontrolü
     const { user, error } = verifyToken(request);
     if (error) return error;
 
@@ -46,10 +37,51 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Dosyayı Yakala
+    // 1. Global PDF ve Plan Limiti Kontrolü
+    const PDF_LIMITS: Record<string, number> = {
+      FREE: 3,
+      GOLD: 8,
+      PLATINUM: 20,
+    };
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { plan: true, planExpiresAt: true },
+    });
+
+    const currentPlan =
+      dbUser?.planExpiresAt && dbUser.planExpiresAt > new Date()
+        ? (dbUser.plan ?? "FREE")
+        : "FREE";
+    const pdfLimit = PDF_LIMITS[currentPlan] ?? 3;
+
+    const totalNotes = await prisma.studyNote.count({
+      where: { studentId: user.userId },
+    });
+    const totalStandaloneQuizzes = await prisma.quiz.count({
+      where: { studentId: user.userId, noteId: null },
+    });
+    const totalUsage = totalNotes + totalStandaloneQuizzes;
+
+    if (totalUsage >= pdfLimit) {
+      const planLabel =
+        currentPlan === "FREE"
+          ? "Ücretsiz"
+          : currentPlan === "GOLD"
+            ? "Gold"
+            : "Platinum";
+      return NextResponse.json(
+        {
+          error: `Limit aşıldı! ${planLabel} planında toplam en fazla ${pdfLimit} PDF yükleyebilirsiniz.`,
+          code: "PDF_LIMIT_EXCEEDED",
+        },
+        { status: 403 },
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const subjectOverride = (formData.get("subject_override") as string | null) || null;
+    const subjectOverride =
+      (formData.get("subject_override") as string | null) || null;
 
     if (!file) {
       return NextResponse.json(
@@ -58,18 +90,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Python Motoruna Gönder
     console.log("Python motoruna özet ve flashcard için istek atılıyor...");
     const pythonFormData = new FormData();
     pythonFormData.append("file", file);
 
-    const pythonResponse = await fetch(
-      "http://127.0.0.1:8000/generate-study-notes",
-      {
-        method: "POST",
-        body: pythonFormData,
-      },
-    );
+    const AI_URL = process.env.AI_ENGINE_URL || "http://127.0.0.1:8000";
+
+    const pythonResponse = await fetch(`${AI_URL}/generate-study-notes`, {
+      method: "POST",
+      body: pythonFormData,
+    });
 
     if (!pythonResponse.ok) {
       const errorText = await pythonResponse.text();
@@ -82,13 +112,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: detail }, { status: 502 });
     }
 
-    // 4. Python'dan Gelen JSON'ı Al
-    // Hatırlatma: Python bize { status: "success", data: { summary: "...", flashcards: [...] } } dönüyor
     const aiData = await pythonResponse.json();
     const { summary, flashcards } = aiData.data;
     const subject = subjectOverride || aiData.subject || "Genel";
 
-    // 5. Veritabanına Tek Seferde Kaydet (Nested Write)
     const savedNote = await prisma.studyNote.create({
       data: {
         studentId: user.userId,
@@ -96,8 +123,6 @@ export async function POST(request: Request) {
         summary: summary,
         subject: subject,
         processedStatus: "COMPLETED",
-
-        // Flashcard tablosuna kartları tek seferde diziyoruz
         flashcards: {
           create: flashcards.map((card: any) => ({
             front: card.front,
@@ -107,7 +132,6 @@ export async function POST(request: Request) {
       },
     });
 
-    // 6. Başarıyla Dön
     return NextResponse.json(
       {
         message: "Özet ve çalışma kartları başarıyla üretilip kaydedildi!",
