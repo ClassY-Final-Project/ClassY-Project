@@ -551,7 +551,7 @@ export default function LandingPage() {
                 badge: null as string | null,
                 badgeStyle: "",
                 features: [
-                  { text: "Her hafta 1 PDF yükleme", ok: true },
+                  { text: "Her hafta 3 PDF yükleme", ok: true },
                   { text: "Çalışma odalarına katılabilme", ok: true },
                   { text: "Canlı derslere katılım", ok: true },
                   { text: "Çalışma odası oluşturma", ok: false },
@@ -571,7 +571,7 @@ export default function LandingPage() {
                 badge: "Popüler",
                 badgeStyle: "bg-amber-400 text-zinc-900",
                 features: [
-                  { text: "Her hafta 5 PDF yükleme", ok: true },
+                  { text: "Her hafta 8 PDF yükleme", ok: true },
                   { text: "Haftada 1 çalışma odası oluşturma", ok: true },
                   { text: "Gold odalar açabilme", ok: true },
                   { text: "Canlı derslere katılım", ok: true },
@@ -591,7 +591,7 @@ export default function LandingPage() {
                 badgeStyle:
                   "bg-gradient-to-r from-violet-500 to-purple-600 text-white",
                 features: [
-                  { text: "Her hafta 10 PDF yükleme", ok: true },
+                  { text: "Her hafta 20 PDF yükleme", ok: true },
                   { text: "Haftada 5 çalışma odası oluşturma", ok: true },
                   { text: "Tüm odalara katılma", ok: true },
                   { text: "Platinum odalar açabilme", ok: true },

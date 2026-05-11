@@ -19,7 +19,7 @@ const PLANS = [
     border: "border-zinc-200 dark:border-zinc-700",
     btnClass: "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:opacity-90",
     features: [
-      { text: "Her hafta 1 PDF yükleme", ok: true },
+      { text: "Her hafta 3 PDF yükleme", ok: true },
       { text: "Çalışma odalarına katılabilme", ok: true },
       { text: "Canlı derslere katılım", ok: true },
       { text: "Çalışma odası oluşturma", ok: false },
@@ -38,7 +38,7 @@ const PLANS = [
     border: "border-amber-300 dark:border-amber-500/50",
     btnClass: "bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/30",
     features: [
-      { text: "Her hafta 5 PDF yükleme", ok: true },
+      { text: "Her hafta 8 PDF yükleme", ok: true },
       { text: "Haftada 1 çalışma odası oluşturma", ok: true },
       { text: "Gold odalar açabilme", ok: true },
       { text: "Canlı derslere katılım", ok: true },
@@ -57,7 +57,7 @@ const PLANS = [
     border: "border-violet-300 dark:border-violet-500/50",
     btnClass: "bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/30",
     features: [
-      { text: "Her hafta 10 PDF yükleme", ok: true },
+      { text: "Her hafta 20 PDF yükleme", ok: true },
       { text: "Haftada 5 çalışma odası oluşturma", ok: true },
       { text: "Tüm odalara katılma", ok: true },
       { text: "Platinum odalar açabilme", ok: true },
