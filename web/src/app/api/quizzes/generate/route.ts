@@ -6,22 +6,73 @@ export async function POST(request: Request) {
   try {
     const { user, error } = verifyToken(request);
     if (error) return error;
-    if (!user) return NextResponse.json({ error: "Kullanıcı doğrulanamadı." }, { status: 401 });
+    if (!user)
+      return NextResponse.json(
+        { error: "Kullanıcı doğrulanamadı." },
+        { status: 401 },
+      );
+
+    // 1. Global PDF ve Plan Limiti Kontrolü
+    const PDF_LIMITS: Record<string, number> = {
+      FREE: 3,
+      GOLD: 8,
+      PLATINUM: 20,
+    };
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { plan: true, planExpiresAt: true },
+    });
+
+    const currentPlan =
+      dbUser?.planExpiresAt && dbUser.planExpiresAt > new Date()
+        ? (dbUser.plan ?? "FREE")
+        : "FREE";
+    const pdfLimit = PDF_LIMITS[currentPlan] ?? 3;
+
+    const totalNotes = await prisma.studyNote.count({
+      where: { studentId: user.userId },
+    });
+    const totalStandaloneQuizzes = await prisma.quiz.count({
+      where: { studentId: user.userId, noteId: null },
+    });
+    const totalUsage = totalNotes + totalStandaloneQuizzes;
+
+    if (totalUsage >= pdfLimit) {
+      const planLabel =
+        currentPlan === "FREE"
+          ? "Ücretsiz"
+          : currentPlan === "GOLD"
+            ? "Gold"
+            : "Platinum";
+      return NextResponse.json(
+        {
+          error: `Limit aşıldı! ${planLabel} planında toplam en fazla ${pdfLimit} PDF yükleyebilirsiniz.`,
+          code: "PDF_LIMIT_EXCEEDED",
+        },
+        { status: 403 },
+      );
+    }
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const questionCount = formData.get("question_count") || "10";
-    const subjectOverride = (formData.get("subject_override") as string | null) || null;
+    const subjectOverride =
+      (formData.get("subject_override") as string | null) || null;
 
     if (!file) {
-      return NextResponse.json({ error: "Lütfen bir PDF dosyası yükleyin." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Lütfen bir PDF dosyası yükleyin." },
+        { status: 400 },
+      );
     }
 
     const pythonFormData = new FormData();
     pythonFormData.append("file", file);
     pythonFormData.append("question_count", questionCount.toString());
 
-    const pythonResponse = await fetch("http://127.0.0.1:8000/generate-quiz", {
+    const AI_URL = process.env.AI_ENGINE_URL || "http://127.0.0.1:8000";
+
+    const pythonResponse = await fetch(`${AI_URL}/generate-quiz`, {
       method: "POST",
       body: pythonFormData,
     });
@@ -65,6 +116,9 @@ export async function POST(request: Request) {
     );
   } catch (err: any) {
     console.error("Entegrasyon Rotası Hatası:", err);
-    return NextResponse.json({ error: "İşlem sırasında beklenmeyen bir hata oluştu." }, { status: 500 });
+    return NextResponse.json(
+      { error: "İşlem sırasında beklenmeyen bir hata oluştu." },
+      { status: 500 },
+    );
   }
 }
