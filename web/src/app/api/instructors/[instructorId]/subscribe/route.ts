@@ -16,7 +16,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ ins
 
   try {
     const instructor = await prisma.user.findUnique({
-      where: { id: instructorId, role: { in: ["INSTRUCTOR", "ADMIN"] } },
+      where: { id: instructorId, role: "INSTRUCTOR" },
     });
     if (!instructor) return NextResponse.json({ error: "Eğitmen bulunamadı." }, { status: 404 });
 
