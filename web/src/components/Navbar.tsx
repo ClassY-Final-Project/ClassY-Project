@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
 import { useEffect, useRef, useState } from "react";
-import GlobalSearch from "./GlobalSearch";
+import { useAuth } from "@/context/AuthContext";
 import AccessibilityPanel from "./AccessibilityPanel";
+import GlobalSearch from "./GlobalSearch";
 
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
@@ -128,12 +128,12 @@ export default function Navbar() {
   const planBadge =
     activePlan === "PLATINUM"
       ? {
-          label: "Platinum",
+          label: "💎 Platinum",
           cls: "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300",
         }
       : activePlan === "GOLD"
         ? {
-            label: "Gold",
+            label: "⭐ Gold",
             cls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
           }
         : {
@@ -144,28 +144,27 @@ export default function Navbar() {
   const navLinks = user
     ? isInstructor
       ? [
-          { href: "/instructor/dashboard", label: "Panelim" },
-          { href: "/instructor/courses", label: "Kurslarım" },
-          { href: "/instructor/earnings", label: "Kazanımlarım" },
-          { href: "/instructor/quiz", label: "Quiz" },
-          { href: "/live", label: "Canlı" },
-          { href: "/courses", label: "Katalog" },
+          { href: "/instructor/dashboard", label: "📊 Panelim" },
+          { href: "/instructor/courses", label: "📝 Kurslarım" },
+          { href: "/instructor/earnings", label: "💰 Kazançlarım" },
+          { href: "/instructor/quiz", label: "📋 Quiz" },
+          { href: "/live", label: "🔴 Canlı" },
+          { href: "/courses", label: "📖 Katalog" },
         ]
       : [
-          { href: "/dashboard", label: "Panelim" },
-          { href: "/study-rooms", label: "Odalar" },
-          { href: "/live", label: "Canlı" },
-          { href: "/instructors", label: "Eğitmenler" },
-          { href: "/courses", label: "Katalog" },
+          { href: "/dashboard", label: "💻 Çalışma Alanım" },
+          { href: "/study-rooms", label: "📚 Odalar" },
+          { href: "/live", label: "🔴 Canlı Ders" },
+          { href: "/instructors", label: "👨‍🏫 Eğitmenler" },
+          { href: "/courses", label: "📖 Kurslar" },
         ]
     : [];
 
   return (
     <>
-<<<<<<< HEAD
       <header className="sticky top-0 z-50 border-b border-zinc-200/50 bg-white/70 backdrop-blur-xl dark:border-white/5 dark:bg-[#09090b]/70">
-        <div className="relative flex min-h-[64px] w-full items-center px-6 py-4">
-          <div className="z-10 flex items-center justify-start">
+        <div className="flex min-h-[64px] w-full items-center gap-3 px-6 py-4">
+          <div className="shrink-0">
             <Link
               href={user?.role === "ADMIN" ? "/admin" : user ? "/dashboard" : "/"}
               className="group flex w-fit items-center gap-0"
@@ -183,13 +182,13 @@ export default function Navbar() {
                 style={{ color: "#763fff" }}
                 translate="no"
               >
-                ClassY
+                classY
               </span>
             </Link>
           </div>
 
           {user ? (
-            <nav className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 overflow-hidden lg:flex">
+            <nav className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-hidden xl:flex">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -205,40 +204,10 @@ export default function Navbar() {
               ))}
             </nav>
           ) : (
-            <div />
+            <div className="flex-1" />
           )}
 
-          <div className="z-10 ml-auto flex items-center justify-end gap-3">
-=======
-      <header className="sticky top-0 z-50 border-b border-zinc-200/50 dark:border-white/5 bg-white/70 dark:bg-[#09090b]/70 backdrop-blur-xl">
-        <div className="w-full flex items-center px-6 py-4 min-h-[64px] gap-3">
-          {/* Logo (Left) */}
-          <div className="flex items-center shrink-0">
-            <Link href={user?.role === "ADMIN" ? "/admin" : user ? "/dashboard" : "/"} className="flex items-center gap-0 group w-fit">
-              <Image src="/logo.png" alt="ClassY Logo" width={44} height={44} className="w-11 h-11 object-contain" priority />
-              <span className="font-extrabold text-2xl tracking-tight transition-transform group-hover:scale-105" style={{ color: '#763fff' }} translate="no">classY</span>
-            </Link>
-          </div>
-
-          {/* Desktop Nav (Ortalı, flex-1) */}
-          {user ? (
-            <nav className="hidden xl:flex flex-1 items-center justify-center gap-0.5 min-w-0 overflow-hidden">
-              {navLinks.map(l => (
-                <Link key={l.href} href={l.href} className={`px-3 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap ${
-                  pathname === l.href || pathname.startsWith(l.href + "/")
-                    ? "bg-zinc-100 dark:bg-white/10 text-indigo-700 dark:text-indigo-300"
-                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-white/5"
-                }`}>
-                  {l.label}
-                </Link>
-              ))}
-            </nav>
-          ) : <div className="flex-1" />}
-
-          {/* Actions (Right) */}
-          <div className="flex items-center justify-end gap-3 ml-auto shrink-0">
-            {/* Global Arama */}
->>>>>>> d5cf39880bb8601cd1c5e3c1468c7e6f89af5b50
+          <div className="ml-auto flex shrink-0 items-center justify-end gap-3">
             {user && <GlobalSearch />}
 
             <AccessibilityPanel />
@@ -246,6 +215,7 @@ export default function Navbar() {
             <button
               onClick={toggleDark}
               title={dark ? "Açık mod" : "Gece modu"}
+              data-classy-control="icon-button"
               className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-colors hover:bg-zinc-200 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10"
             >
               {dark ? (
@@ -284,8 +254,11 @@ export default function Navbar() {
                 <button
                   onClick={() => {
                     setNotifOpen((current) => !current);
-                    if (unread > 0) markAllRead();
+                    if (unread > 0) {
+                      void markAllRead();
+                    }
                   }}
+                  data-classy-control="icon-button"
                   className="relative flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-colors hover:bg-zinc-200 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10"
                 >
                   <svg
@@ -344,7 +317,7 @@ export default function Navbar() {
                                 onClick={(event) => {
                                   event.preventDefault();
                                   event.stopPropagation();
-                                  deleteNotification(notification.id);
+                                  void deleteNotification(notification.id);
                                 }}
                                 className="mt-0.5 shrink-0 p-1 text-zinc-300 transition-colors hover:text-red-500"
                                 title="Bildirimi sil"
@@ -398,41 +371,29 @@ export default function Navbar() {
 
             {user && !isInstructor && (
               activePlan === "FREE" ? (
-<<<<<<< HEAD
                 <Link
                   href="/pricing"
-                  className="hidden whitespace-nowrap rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 md:inline-flex"
+                  data-classy-control="upgrade-button"
+                  className="hidden whitespace-nowrap rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 lg:inline-flex"
                 >
-                  Planını Yükselt
-                </Link>
-              ) : (
-                <Link
-                  href="/pricing"
-                  className={`hidden items-center rounded-full px-2.5 py-1 text-xs font-semibold transition-opacity hover:opacity-75 md:inline-flex ${planBadge.cls}`}
-                >
-=======
-                <Link href="/pricing" className="hidden lg:inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors whitespace-nowrap">
                   ⭐ Planını Yükselt
                 </Link>
               ) : (
-                <Link href="/pricing" className={`hidden lg:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold transition-opacity hover:opacity-75 ${planBadge.cls}`}>
->>>>>>> d5cf39880bb8601cd1c5e3c1468c7e6f89af5b50
+                <Link
+                  href="/pricing"
+                  className={`hidden items-center rounded-full px-2.5 py-1 text-xs font-semibold transition-opacity hover:opacity-75 lg:inline-flex ${planBadge.cls}`}
+                >
                   {planBadge.label}
                 </Link>
               )
             )}
 
             {user ? (
-<<<<<<< HEAD
-              <div className="hidden items-center gap-3 border-l border-zinc-200 pl-4 dark:border-white/10 md:flex">
+              <div className="hidden items-center gap-3 border-l border-zinc-200 pl-4 dark:border-white/10 lg:flex">
                 <Link
                   href="/profile"
                   className="flex items-center gap-3 transition-opacity hover:opacity-80"
                 >
-=======
-              <div className="hidden lg:flex items-center gap-3 pl-4 border-l border-zinc-200 dark:border-white/10">
-                <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
->>>>>>> d5cf39880bb8601cd1c5e3c1468c7e6f89af5b50
                   <div className="flex flex-col items-end">
                     <span className="text-sm font-bold leading-none text-zinc-900 dark:text-white">
                       {user.fullName || "Kullanıcı"}
@@ -457,6 +418,7 @@ export default function Navbar() {
                 <button
                   onClick={logout}
                   title="Çıkış"
+                  data-classy-control="icon-button"
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-colors hover:bg-red-50 hover:text-red-500 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                 >
                   <svg
@@ -475,8 +437,7 @@ export default function Navbar() {
                 </button>
               </div>
             ) : pathname !== "/" ? (
-<<<<<<< HEAD
-              <div className="hidden items-center gap-3 md:flex">
+              <div className="hidden items-center gap-3 lg:flex">
                 <Link
                   href="/login"
                   className="px-5 py-2.5 text-sm font-bold text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white"
@@ -494,7 +455,8 @@ export default function Navbar() {
 
             <button
               onClick={() => setMenuOpen((current) => !current)}
-              className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-full bg-zinc-100 text-zinc-500 transition-colors hover:text-indigo-600 dark:bg-white/5 md:hidden"
+              data-classy-control="icon-button"
+              className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-full bg-zinc-100 text-zinc-500 transition-colors hover:text-indigo-600 dark:bg-white/5 xl:hidden"
             >
               <span
                 className={`block h-0.5 w-5 bg-current transition-all ${
@@ -511,28 +473,13 @@ export default function Navbar() {
                   menuOpen ? "-translate-y-2 -rotate-45" : ""
                 }`}
               />
-=======
-              <div className="hidden lg:flex items-center gap-3">
-                <Link href="/login" className="px-5 py-2.5 text-sm font-bold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors">Giriş Yap</Link>
-                <Link href="/register" className="px-5 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-full font-bold text-sm hover:scale-105 transition-transform shadow-md">Kayıt Ol</Link>
-              </div>
-            ) : null}
-
-            {/* Hamburger (mobil) */}
-            <button onClick={() => setMenuOpen(v => !v)}
-              className="xl:hidden w-10 h-10 flex flex-col items-center justify-center gap-1.5 rounded-full bg-zinc-100 dark:bg-white/5 text-zinc-500 hover:text-indigo-600 transition-colors">
-              <span className={`block w-5 h-0.5 bg-current transition-all ${menuOpen ? "rotate-45 translate-y-2" : ""}`} />
-              <span className={`block w-5 h-0.5 bg-current transition-all ${menuOpen ? "opacity-0" : ""}`} />
-              <span className={`block w-5 h-0.5 bg-current transition-all ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
->>>>>>> d5cf39880bb8601cd1c5e3c1468c7e6f89af5b50
             </button>
           </div>
         </div>
       </header>
 
       {menuOpen && (
-<<<<<<< HEAD
-        <div className="fixed inset-x-0 top-16 z-40 space-y-2 border-b border-zinc-200/50 bg-white/90 px-6 py-6 shadow-2xl backdrop-blur-2xl dark:border-white/5 dark:bg-zinc-950/90 md:hidden">
+        <div className="fixed inset-x-0 top-16 z-40 space-y-2 border-b border-zinc-200/50 bg-white/90 px-6 py-6 shadow-2xl backdrop-blur-2xl dark:border-white/5 dark:bg-zinc-950/90 xl:hidden">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -545,16 +492,6 @@ export default function Navbar() {
               }`}
             >
               {link.label}
-=======
-        <div className="xl:hidden fixed inset-x-0 top-16 z-40 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-2xl border-b border-zinc-200/50 dark:border-white/5 shadow-2xl px-6 py-6 space-y-2">
-          {navLinks.map(l => (
-            <Link key={l.href} href={l.href} className={`block px-5 py-4 rounded-2xl text-base font-bold transition-colors ${
-              pathname === l.href || pathname.startsWith(l.href + "/")
-                ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400"
-                : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/5"
-            }`}>
-              {l.label}
->>>>>>> d5cf39880bb8601cd1c5e3c1468c7e6f89af5b50
             </Link>
           ))}
           <div className="mt-4 border-t border-zinc-200/50 pt-4 dark:border-white/5">
@@ -595,6 +532,7 @@ export default function Navbar() {
                 </Link>
                 <button
                   onClick={logout}
+                  data-classy-control="icon-button"
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400"
                 >
                   <svg

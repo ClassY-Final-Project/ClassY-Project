@@ -3,7 +3,8 @@ export type AccessibilityColorMode =
   | "default"
   | "protanopia"
   | "deuteranopia"
-  | "tritanopia";
+  | "tritanopia"
+  | "grayscale";
 
 export interface AccessibilitySettings {
   fontSize: AccessibilityFontSize;
@@ -38,7 +39,8 @@ export function sanitizeAccessibilitySettings(
     colorMode:
       value?.colorMode === "protanopia" ||
       value?.colorMode === "deuteranopia" ||
-      value?.colorMode === "tritanopia"
+      value?.colorMode === "tritanopia" ||
+      value?.colorMode === "grayscale"
         ? value.colorMode
         : "default",
     readAloud: Boolean(value?.readAloud),
@@ -58,7 +60,7 @@ export function getAccessibilityBootScript() {
           fontSize: value && (value.fontSize === "small" || value.fontSize === "large" || value.fontSize === "x-large") ? value.fontSize : (value && value.fontSize === "default" ? "normal" : defaults.fontSize),
           highContrast: Boolean(value && value.highContrast),
           focusMode: Boolean(value && value.focusMode),
-          colorMode: value && (value.colorMode === "protanopia" || value.colorMode === "deuteranopia" || value.colorMode === "tritanopia") ? value.colorMode : defaults.colorMode,
+          colorMode: value && (value.colorMode === "protanopia" || value.colorMode === "deuteranopia" || value.colorMode === "tritanopia" || value.colorMode === "grayscale") ? value.colorMode : defaults.colorMode,
           readAloud: Boolean(value && value.readAloud)
         };
       }

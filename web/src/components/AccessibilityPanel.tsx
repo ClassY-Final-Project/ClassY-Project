@@ -1,13 +1,8 @@
 "use client";
 
-import {
-  type CSSProperties,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from "react";
 import { createPortal } from "react-dom";
+import { type CSSProperties, useEffect, useId, useRef, useState } from "react";
+
 import { useAccessibility } from "@/context/AccessibilityContext";
 
 const fontSizeOptions = [
@@ -18,10 +13,11 @@ const fontSizeOptions = [
 ] as const;
 
 const colorModeOptions = [
-  { value: "default", label: "Standart" },
-  { value: "protanopia", label: "Protanopi" },
-  { value: "deuteranopia", label: "Deuteranopi" },
-  { value: "tritanopia", label: "Tritanopi" },
+  { value: "default", label: "Varsayılan" },
+  { value: "protanopia", label: "Protanopia" },
+  { value: "deuteranopia", label: "Deuteranopia" },
+  { value: "tritanopia", label: "Tritanopia" },
+  { value: "grayscale", label: "Gri Tonlama" },
 ] as const;
 
 interface AccessibilityPanelProps {
@@ -51,6 +47,8 @@ function ToggleSwitch({
     <button
       type="button"
       onClick={onToggle}
+      data-classy-control="toggle"
+      data-state={pressed ? "active" : "inactive"}
       className={`inline-flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition-colors ${
         pressed ? "bg-indigo-600" : "bg-zinc-300 dark:bg-zinc-700"
       }`}
@@ -76,12 +74,13 @@ function ToggleCard({
   onToggle: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 dark:border-white/5 dark:bg-white/[0.03]">
+    <div
+      data-classy-surface="panel-card"
+      className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 dark:border-white/5 dark:bg-white/[0.03]"
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-zinc-900 dark:text-white">
-            {title}
-          </p>
+          <p className="text-sm font-medium text-zinc-900 dark:text-white">{title}</p>
           <PlaceholderNote />
         </div>
         <ToggleSwitch pressed={pressed} label={title} onToggle={onToggle} />
@@ -104,6 +103,8 @@ function FontSizeOptionButton({
       type="button"
       onClick={onClick}
       aria-pressed={active}
+      data-classy-control="choice"
+      data-state={active ? "active" : "inactive"}
       className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
         active
           ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-500/10 dark:text-indigo-300"
@@ -153,10 +154,7 @@ export default function AccessibilityPanel({
       );
       const top = Math.min(rect.bottom + gutter, viewportHeight - 24);
       const availableHeight = Math.max(240, viewportHeight - top - 16);
-      const maxHeight = Math.min(
-        availableHeight,
-        Math.max(320, viewportHeight - 96),
-      );
+      const maxHeight = Math.min(availableHeight, Math.max(320, viewportHeight - 96));
 
       let left = mobileLabel ? rect.left : rect.right - width;
       left = Math.max(
@@ -215,132 +213,141 @@ export default function AccessibilityPanel({
     };
   }, [isOpen]);
 
-  const panel = canUseDOM && isOpen
-    ? createPortal(
-        <section
-          id={panelId}
-          ref={panelRef}
-          aria-label="Erişilebilirlik paneli"
-          style={panelStyle}
-          className={`fixed z-[120] flex max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[28px] border border-zinc-200/80 bg-white/95 shadow-[0_24px_80px_rgba(9,9,11,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/95 ${panelClassName ?? ""}`}
-        >
-          <div className="flex items-start justify-between gap-4 border-b border-zinc-100 px-5 py-4 dark:border-white/5">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-zinc-900 dark:text-white">
-                Erişilebilirlik
-              </p>
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                Yazı boyutu ve görünüm ayarları
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-zinc-200"
-              aria-label="Paneli kapat"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
+  const panel =
+    canUseDOM && isOpen
+      ? createPortal(
+          <section
+            id={panelId}
+            ref={panelRef}
+            aria-label="Erişilebilirlik paneli"
+            data-classy-surface="panel"
+            style={panelStyle}
+            className={`fixed z-[120] flex max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[28px] border border-zinc-200/80 bg-white/95 shadow-[0_24px_80px_rgba(9,9,11,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/95 ${panelClassName ?? ""}`}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-zinc-100 px-5 py-4 dark:border-white/5">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-zinc-900 dark:text-white">
+                  Erişilebilirlik
+                </p>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  Görünüm ve öğrenme odaklı ayarlar
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                data-classy-control="icon-button"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-zinc-200"
+                aria-label="Paneli kapat"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18 18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-
-          <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
-            <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 dark:border-white/5 dark:bg-white/[0.03]">
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm font-medium text-zinc-900 dark:text-white">
-                    Yazı Boyutu
-                  </p>
-                  <PlaceholderNote />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {fontSizeOptions.map((option) => (
-                    <FontSizeOptionButton
-                      key={option.value}
-                      active={settings.fontSize === option.value}
-                      label={option.label}
-                      onClick={() => updateSettings({ fontSize: option.value })}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-3">
-              <ToggleCard
-                title="Yüksek Kontrast"
-                pressed={settings.highContrast}
-                onToggle={() =>
-                  updateSettings({ highContrast: !settings.highContrast })
-                }
-              />
-              <ToggleCard
-                title="Odak Modu"
-                pressed={settings.focusMode}
-                onToggle={() => updateSettings({ focusMode: !settings.focusMode })}
-              />
-            </div>
-
-            <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 dark:border-white/5 dark:bg-white/[0.03]">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-zinc-900 dark:text-white">
-                    Renk Modu
-                  </p>
-                  <PlaceholderNote />
-                </div>
-                <select
-                  value={settings.colorMode}
-                  onChange={(event) =>
-                    updateSettings({
-                      colorMode: event.target.value as typeof settings.colorMode,
-                    })
-                  }
-                  className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-700 outline-none transition-colors focus:border-indigo-400 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-200 sm:w-40"
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
                 >
-                  {colorModeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18 18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
             </div>
 
-            <ToggleCard
-              title="Sesli Okuma"
-              pressed={settings.readAloud}
-              onToggle={() => updateSettings({ readAloud: !settings.readAloud })}
-            />
-          </div>
+            <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
+              <div
+                data-classy-surface="panel-card"
+                className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 dark:border-white/5 dark:bg-white/[0.03]"
+              >
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                      Yazı Boyutu
+                    </p>
+                    <PlaceholderNote />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {fontSizeOptions.map((option) => (
+                      <FontSizeOptionButton
+                        key={option.value}
+                        active={settings.fontSize === option.value}
+                        label={option.label}
+                        onClick={() => updateSettings({ fontSize: option.value })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-zinc-100 px-5 py-4 dark:border-white/5">
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">
-              Ayarlar localStorage ile korunur
-            </span>
-            <button
-              type="button"
-              onClick={resetSettings}
-              className="rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:border-zinc-300 hover:text-zinc-900 dark:border-white/10 dark:text-zinc-300 dark:hover:border-white/20 dark:hover:text-white"
-            >
-              Sıfırla
-            </button>
-          </div>
-        </section>,
-        document.body,
-      )
-    : null;
+              <div className="grid gap-3">
+                <ToggleCard
+                  title="Yüksek Kontrast"
+                  pressed={settings.highContrast}
+                  onToggle={() => updateSettings({ highContrast: !settings.highContrast })}
+                />
+                <ToggleCard
+                  title="Odak Modu"
+                  pressed={settings.focusMode}
+                  onToggle={() => updateSettings({ focusMode: !settings.focusMode })}
+                />
+              </div>
+
+              <div
+                data-classy-surface="panel-card"
+                className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 dark:border-white/5 dark:bg-white/[0.03]"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                      Renk Modu
+                    </p>
+                    <PlaceholderNote />
+                  </div>
+                  <select
+                    value={settings.colorMode}
+                    data-classy-control="select"
+                    onChange={(event) =>
+                      updateSettings({
+                        colorMode: event.target.value as typeof settings.colorMode,
+                      })
+                    }
+                    className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-700 outline-none transition-colors focus:border-indigo-400 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-200 sm:w-44"
+                  >
+                    {colorModeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <ToggleCard
+                title="Sesli Okuma"
+                pressed={settings.readAloud}
+                onToggle={() => updateSettings({ readAloud: !settings.readAloud })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 border-t border-zinc-100 px-5 py-4 dark:border-white/5">
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                Ayarlar localStorage ile korunur
+              </span>
+              <button
+                type="button"
+                onClick={resetSettings}
+                data-classy-control="reset"
+                className="rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:border-zinc-300 hover:text-zinc-900 dark:border-white/10 dark:text-zinc-300 dark:hover:border-white/20 dark:hover:text-white"
+              >
+                Sıfırla
+              </button>
+            </div>
+          </section>,
+          document.body,
+        )
+      : null;
 
   return (
     <>
@@ -351,6 +358,7 @@ export default function AccessibilityPanel({
         aria-controls={panelId}
         aria-haspopup="dialog"
         onClick={() => setIsOpen((current) => !current)}
+        data-classy-control="icon-button"
         className={
           buttonClassName ??
           "flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-colors hover:bg-zinc-200 hover:text-zinc-700 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-zinc-200"
