@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -54,19 +55,25 @@ function loadStoredSettings() {
 
 export function AccessibilityProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AccessibilitySettings>(
-    () =>
-      typeof window === "undefined"
-        ? defaultAccessibilitySettings
-        : loadStoredSettings(),
+    defaultAccessibilitySettings,
   );
+  const initializedRef = useRef(false);
 
   useEffect(() => {
+    if (!initializedRef.current) return;
     applyAccessibilitySettings(settings);
     window.localStorage.setItem(
       ACCESSIBILITY_STORAGE_KEY,
       JSON.stringify(settings),
     );
   }, [settings]);
+
+  useEffect(() => {
+    const stored = loadStoredSettings();
+    initializedRef.current = true;
+    setSettings(stored);
+    applyAccessibilitySettings(stored);
+  }, []);
 
   const value = useMemo<AccessibilityContextValue>(
     () => ({

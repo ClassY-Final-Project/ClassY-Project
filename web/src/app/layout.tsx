@@ -37,6 +37,7 @@ export default function RootLayout({
     <html lang="tr" translate="no" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen flex flex-col overflow-hidden bg-[#09090b]`}
+        suppressHydrationWarning
       >
         <Script
           id="classy-accessibility-boot"
