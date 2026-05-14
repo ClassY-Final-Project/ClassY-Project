@@ -105,7 +105,7 @@ export default function GlobalSearch() {
               {!query.trim() ? (
                 <p className="text-sm text-zinc-400 text-center py-10">Aramak için yazmaya başlayın...</p>
               ) : !loading && totalResults === 0 ? (
-                <p className="text-sm text-zinc-400 text-center py-10">"{query}" için sonuç bulunamadı.</p>
+                <p className="text-sm text-zinc-400 text-center py-10">&quot;{query}&quot; için sonuç bulunamadı.</p>
               ) : (
                 <div className="p-2 space-y-1">
                   {(results?.courses?.length ?? 0) > 0 && (

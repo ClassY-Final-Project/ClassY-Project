@@ -1,9 +1,17 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { type CSSProperties, useEffect, useId, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 
 import { useAccessibility } from "@/context/AccessibilityContext";
+import { speakText, stopSpeaking } from "@/lib/accessibility";
 
 const fontSizeOptions = [
   { value: "small", label: "Küçük" },
@@ -26,10 +34,10 @@ interface AccessibilityPanelProps {
   mobileLabel?: boolean;
 }
 
-function PlaceholderNote() {
+function PlaceholderNote({ children }: { children?: React.ReactNode }) {
   return (
     <p className="text-xs leading-5 text-zinc-500 dark:text-zinc-400">
-      Ayarlar kaydedilir ve root attribute&apos;ları uygulanır.
+      {children || "Ayarlar kaydedilir ve root attribute'ları uygulanır."}
     </p>
   );
 }
@@ -66,10 +74,12 @@ function ToggleSwitch({
 
 function ToggleCard({
   title,
+  note,
   pressed,
   onToggle,
 }: {
   title: string;
+  note?: React.ReactNode;
   pressed: boolean;
   onToggle: () => void;
 }) {
@@ -80,8 +90,10 @@ function ToggleCard({
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-zinc-900 dark:text-white">{title}</p>
-          <PlaceholderNote />
+          <p className="text-sm font-medium text-zinc-900 dark:text-white">
+            {title}
+          </p>
+          <PlaceholderNote>{note}</PlaceholderNote>
         </div>
         <ToggleSwitch pressed={pressed} label={title} onToggle={onToggle} />
       </div>
@@ -129,6 +141,37 @@ export default function AccessibilityPanel({
   const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
   const canUseDOM = typeof document !== "undefined";
 
+  // --- SESLİ OKUMA (TEXT-TO-SPEECH) MANTIĞI ---
+  const handleSpeechEnd = useCallback(() => {
+    // Okuma bittiğinde anahtarı otomatik olarak kapat
+    // updateSettings({ readAloud: false });
+  }, []);
+
+  useEffect(() => {
+    if (settings.readAloud) {
+      // 1. Kullanıcı bir metin seçti mi kontrol et
+      const selection = window.getSelection()?.toString();
+
+      // 2. Seçili metin varsa onu, yoksa sayfanın ana içeriğini oku
+      const textToRead =
+        selection && selection.trim().length > 0
+          ? selection
+          : document.querySelector("main")?.innerText ||
+            document.body.innerText ||
+            "Okunacak içerik bulunamadı.";
+
+      speakText(textToRead, handleSpeechEnd);
+    } else {
+      // Anahtar kapatıldığında sesi durdur
+      stopSpeaking();
+    }
+
+    // Bileşen (uygulama) unmount olduğunda veya sayfa değiştiğinde sesi kes
+    return () => {
+      stopSpeaking();
+    };
+  }, [settings.readAloud, handleSpeechEnd]);
+
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -154,7 +197,10 @@ export default function AccessibilityPanel({
       );
       const top = Math.min(rect.bottom + gutter, viewportHeight - 24);
       const availableHeight = Math.max(240, viewportHeight - top - 16);
-      const maxHeight = Math.min(availableHeight, Math.max(320, viewportHeight - 96));
+      const maxHeight = Math.min(
+        availableHeight,
+        Math.max(320, viewportHeight - 96),
+      );
 
       let left = mobileLabel ? rect.left : rect.right - width;
       left = Math.max(
@@ -274,7 +320,9 @@ export default function AccessibilityPanel({
                         key={option.value}
                         active={settings.fontSize === option.value}
                         label={option.label}
-                        onClick={() => updateSettings({ fontSize: option.value })}
+                        onClick={() =>
+                          updateSettings({ fontSize: option.value })
+                        }
                       />
                     ))}
                   </div>
@@ -285,12 +333,25 @@ export default function AccessibilityPanel({
                 <ToggleCard
                   title="Yüksek Kontrast"
                   pressed={settings.highContrast}
-                  onToggle={() => updateSettings({ highContrast: !settings.highContrast })}
+                  onToggle={() =>
+                    updateSettings({ highContrast: !settings.highContrast })
+                  }
                 />
                 <ToggleCard
                   title="Odak Modu"
                   pressed={settings.focusMode}
-                  onToggle={() => updateSettings({ focusMode: !settings.focusMode })}
+                  onToggle={() =>
+                    updateSettings({ focusMode: !settings.focusMode })
+                  }
+                />
+                {/* YENİ EKLENEN SESLİ OKUMA ALANI */}
+                <ToggleCard
+                  title="Sesli Okuma"
+                  note="Metin seçerseniz sadece o kısmı, seçmezseniz ana içeriği okur."
+                  pressed={settings.readAloud}
+                  onToggle={() =>
+                    updateSettings({ readAloud: !settings.readAloud })
+                  }
                 />
               </div>
 
@@ -310,7 +371,8 @@ export default function AccessibilityPanel({
                     data-classy-control="select"
                     onChange={(event) =>
                       updateSettings({
-                        colorMode: event.target.value as typeof settings.colorMode,
+                        colorMode: event.target
+                          .value as typeof settings.colorMode,
                       })
                     }
                     className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-700 outline-none transition-colors focus:border-indigo-400 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-200 sm:w-44"
@@ -323,12 +385,6 @@ export default function AccessibilityPanel({
                   </select>
                 </div>
               </div>
-
-              <ToggleCard
-                title="Sesli Okuma"
-                pressed={settings.readAloud}
-                onToggle={() => updateSettings({ readAloud: !settings.readAloud })}
-              />
             </div>
 
             <div className="flex items-center justify-between gap-3 border-t border-zinc-100 px-5 py-4 dark:border-white/5">

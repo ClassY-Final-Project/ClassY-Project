@@ -11,15 +11,13 @@ import GlobalSearch from "./GlobalSearch";
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
   const pathname = usePathname();
-  const [dark, setDark] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
+  const [dark, setDark] = useState(false);
 
+  useEffect(() => {
     const saved = localStorage.getItem("classy_theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    return saved ? saved === "dark" : prefersDark;
-  });
+    setDark(saved ? saved === "dark" : prefersDark);
+  }, []);
   const [menuOpen, setMenuOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [notifications, setNotifications] = useState<

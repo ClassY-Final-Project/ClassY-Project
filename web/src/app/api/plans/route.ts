@@ -10,14 +10,14 @@ export const PLANS = [
     color: "zinc",
     badge: null,
     features: [
-      "Her hafta 1 PDF yükleme",
+      "Her hafta 3 PDF yükleme",
       "Sınırsız quiz çözme",
       "Çalışma odalarına katılabilme",
       "Canlı derslere katılım",
       "Kurs satın alma",
     ],
     limits: {
-      pdfsPerWeek: 1,
+      pdfsPerWeek: 3,
       roomCreationsPerWeek: 0,
       canCreateRoom: false,
     },
@@ -30,7 +30,7 @@ export const PLANS = [
     color: "amber",
     badge: "Popüler",
     features: [
-      "Her hafta 5 PDF yükleme",
+      "Her hafta 8 PDF yükleme",
       "Haftada 1 çalışma odası oluşturma",
       "Gold ve üstü odalara katılma",
       "Sınırsız quiz çözme",
@@ -38,7 +38,7 @@ export const PLANS = [
       "Kurs satın alma",
     ],
     limits: {
-      pdfsPerWeek: 5,
+      pdfsPerWeek: 8,
       roomCreationsPerWeek: 1,
       canCreateRoom: true,
     },
@@ -51,7 +51,7 @@ export const PLANS = [
     color: "violet",
     badge: "En İyi",
     features: [
-      "Her hafta 10 PDF yükleme",
+      "Her hafta 20 PDF yükleme",
       "Haftada 5 çalışma odası oluşturma",
       "Tüm odalara katılma",
       "Platinum odaları açabilme",
@@ -59,7 +59,7 @@ export const PLANS = [
       "Öncelikli destek",
     ],
     limits: {
-      pdfsPerWeek: 10,
+      pdfsPerWeek: 20,
       roomCreationsPerWeek: 5,
       canCreateRoom: true,
     },

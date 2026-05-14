@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -30,15 +30,15 @@ export default function ProfilePage() {
 
   const PLAN_LOSSES: Record<string, string[]> = {
     GOLD: [
-      "Her hafta 5 yerine 1 PDF yükleyebileceksiniz",
-      "Haftada 1 çalışma odası oluşturma hakkı kaybolacak",
-      "Gold çalışma odalarına giremeyeceksiniz",
+      "Toplam 8 yerine 3 PDF yükleyebileceksiniz",
+      "Haftalık çalışma odası oluşturma hakkınız kısıtlanacak",
+      "Gold çalışma odalarına erişiminiz kaybolacak",
     ],
     PLATINUM: [
-      "Her hafta 10 yerine 1 PDF yükleyebileceksiniz",
-      "Haftada 5 çalışma odası oluşturma hakkı kaybolacak",
-      "Platinum ve Gold odalara giremeyeceksiniz",
-      "Öncelikli destekten yararlanamayacaksınız",
+      "Toplam 20 yerine 3 PDF yükleyebileceksiniz",
+      "Çalışma odası oluşturma limitleriniz düşecek",
+      "Platinum ve Gold odalara erişiminiz kaybolacak",
+      "Öncelikli destek ve özel araçlara erişiminiz kısıtlanacak",
     ],
   };
 

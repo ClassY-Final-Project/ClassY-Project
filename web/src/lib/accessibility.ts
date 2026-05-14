@@ -86,3 +86,44 @@ export function getAccessibilityBootScript() {
     })();
   `;
 }
+
+// --- SESLİ OKUMA (TEXT-TO-SPEECH) YARDIMCI FONKSİYONLARI ---
+
+export const stopSpeaking = () => {
+  if (typeof window !== "undefined" && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+};
+
+export const speakText = (text: string, onEnd?: () => void) => {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+
+  // Önceki okumaları temizle (üst üste binmemesi için)
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+
+  // Tarayıcıdaki sesleri al ve Türkçe olanı bul
+  const voices = window.speechSynthesis.getVoices();
+  const turkishVoice = voices.find(
+    (v) => v.lang.includes("tr-TR") || v.lang.includes("tr"),
+  );
+
+  if (turkishVoice) {
+    utterance.voice = turkishVoice;
+  } else {
+    // Ses dosyası bulunamazsa varsayılan dili Türkçe olarak zorla
+    utterance.lang = "tr-TR";
+  }
+
+  // Okuma ayarları
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+
+  // Okuma bittiğinde dışarıya (bileşene) haber ver
+  if (onEnd) {
+    utterance.onend = onEnd;
+  }
+
+  window.speechSynthesis.speak(utterance);
+};

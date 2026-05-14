@@ -310,7 +310,9 @@ function LessonView({
       ) : (
         <div className="space-y-5">
           {lesson.contents.map((content) => (
-            <ContentBlock key={content.id} content={content} />
+            <ContentBlock key={content.id} content={content} onEnded={() => {
+              if (!isCompleted) onMarkComplete(lesson.id);
+            }} />
           ))}
         </div>
       )}
@@ -336,20 +338,26 @@ function LessonView({
             </svg>
           </button>
         ) : (
-          <Link href={`/courses/${courseId}/certificate`}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-sm hover:bg-green-700 transition-colors">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            Sertifikamı Al
-          </Link>
+          completedIds.size >= allLessons.length ? (
+            <Link href={`/courses/${courseId}/certificate`}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-sm hover:bg-green-700 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Sertifikamı Al
+            </Link>
+          ) : (
+            <div className="text-xs font-medium text-amber-500 bg-amber-500/10 px-3 py-2 rounded-lg">
+              Tüm dersleri tamamlayarak sertifikanı alabilirsin.
+            </div>
+          )
         )}
       </div>
     </div>
   );
 }
 
-function ContentBlock({ content }: { content: LessonContent }) {
+function ContentBlock({ content, onEnded }: { content: LessonContent, onEnded?: () => void }) {
   if ((content.contentType === "VIDEO_URL" || content.contentType === "UPLOADED_VIDEO") && content.assetUrl) {
     const embedUrl = content.contentType === "VIDEO_URL" ? getYoutubeEmbedUrl(content.assetUrl) : null;
     return (
@@ -367,6 +375,7 @@ function ContentBlock({ content }: { content: LessonContent }) {
               controls
               className="w-full max-h-[560px]"
               preload="metadata"
+              onEnded={onEnded}
             />
           </div>
         )}

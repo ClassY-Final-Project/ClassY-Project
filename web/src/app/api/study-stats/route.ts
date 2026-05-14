@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     // Ders → toplam saniye
     const roomTimeBySubject: Record<string, number> = {};
     for (const s of sessions) {
-      const subject = s.room?.topic || s.room?.name || "Diğer";
+      const subject = s.studying || "Genel Çalışma";
       const start = new Date(s.joinedAt).getTime();
       const end = s.leftAt ? new Date(s.leftAt).getTime() : Date.now();
       const secs = Math.max(0, Math.floor((end - start) / 1000));
@@ -49,6 +49,13 @@ export async function GET(request: Request) {
       quizzesBySubject[s].totalScore += q.score || 0;
     }
 
+    // Kullanıcının bizzat eklediği dersleri çek
+    const userSubjects = await prisma.subject.findMany({
+      where: { studentId: user.userId },
+      select: { name: true },
+    });
+    const userSubjectNames = new Set(userSubjects.map((s) => s.name));
+
     // Tüm dersleri birleştir
     const allSubjects = new Set([
       ...Object.keys(roomTimeBySubject),
@@ -56,21 +63,30 @@ export async function GET(request: Request) {
       ...Object.keys(quizzesBySubject),
     ]);
 
-    const stats = Array.from(allSubjects).map(subject => ({
+    const allStats = Array.from(allSubjects).map((subject) => ({
       subject,
       studySeconds: roomTimeBySubject[subject] || 0,
       noteCount: notesBySubject[subject] || 0,
       quizCount: quizzesBySubject[subject]?.count || 0,
       avgScore: quizzesBySubject[subject]
-        ? Math.round(quizzesBySubject[subject].totalScore / quizzesBySubject[subject].count)
+        ? Math.round(
+            quizzesBySubject[subject].totalScore /
+              quizzesBySubject[subject].count
+          )
         : null,
     }));
 
+    // Toplam çalışma süresi (filtrelemeden önce, tüm aktiviteleri kapsar)
+    const totalStudySeconds = allStats.reduce(
+      (sum, s) => sum + s.studySeconds,
+      0
+    );
+
+    // Sadece kullanıcının eklediği dersleri filtrele
+    const stats = allStats.filter((s) => userSubjectNames.has(s.subject));
+
     // Çalışma süresine göre sırala
     stats.sort((a, b) => b.studySeconds - a.studySeconds);
-
-    // Toplam çalışma süresi
-    const totalStudySeconds = stats.reduce((sum, s) => sum + s.studySeconds, 0);
 
     return NextResponse.json({ stats, totalStudySeconds });
   } catch (err) {

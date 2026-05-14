@@ -37,7 +37,7 @@ export function verifyToken(request: Request): {
     const decoded = jwt.verify(token, secretKey) as AuthPayload;
 
     return { user: decoded };
-  } catch (error) {
+  } catch {
     // Token'ın süresi dolmuşsa veya kurcalanmışsa
     return {
       error: NextResponse.json(

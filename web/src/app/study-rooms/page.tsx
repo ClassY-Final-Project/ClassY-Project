@@ -453,7 +453,10 @@ function RoomCard({ room, rank, canAccess }: { room: StudyRoom; rank: number; ca
             {room.participants.slice(0, 5).map(p => (
               <div key={p.id} className="w-7 h-7 rounded-full border-2 border-white dark:border-gray-900 overflow-hidden shrink-0" title={p.user.fullName || ""}>
                 {p.user.avatarUrl ? (
-                  <img src={p.user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  </>
                 ) : (
                   <div className="w-full h-full bg-purple-600 flex items-center justify-center text-xs font-bold text-white">
                     {(p.user.fullName || "?")[0].toUpperCase()}

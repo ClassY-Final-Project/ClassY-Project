@@ -686,7 +686,10 @@ export default function StudyRoomPage() {
                     <div className="flex items-center gap-3">
                       <div className={`w-9 h-9 rounded-full overflow-hidden shrink-0 ${!p.user.avatarUrl ? (isSelf ? "bg-purple-600" : "bg-zinc-300 dark:bg-gray-700") : ""}`}>
                         {p.user.avatarUrl ? (
-                          <img src={p.user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={p.user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                          </>
                         ) : (
                           <div className={`w-full h-full flex items-center justify-center text-sm font-bold text-white ${isSelf ? "bg-purple-600" : "bg-zinc-300 dark:bg-gray-700"}`}>
                             {(p.user.fullName || "?")[0].toUpperCase()}

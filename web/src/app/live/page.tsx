@@ -256,7 +256,10 @@ function LiveRoomsPage() {
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       {room.instructor.avatarUrl ? (
-                        <img src={room.instructor.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={room.instructor.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                        </>
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                           {(room.instructor.fullName || room.instructor.email).charAt(0).toUpperCase()}
