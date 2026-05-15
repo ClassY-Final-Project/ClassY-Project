@@ -55,7 +55,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <span className="font-black text-3xl tracking-tight text-zinc-900 dark:text-white" translate="no">ClassY</span>
+          <span className="font-black text-3xl tracking-tight text-zinc-900 dark:text-white" translate="no">classY</span>
         </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 p-8">
@@ -63,7 +63,7 @@ export default function RegisterPage() {
             Hesap Oluştur
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-            <span translate="no">ClassY</span>&apos;ye katılın
+            <span translate="no">classY</span>&apos;ye katılın
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
