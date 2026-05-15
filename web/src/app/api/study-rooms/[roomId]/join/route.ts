@@ -18,6 +18,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ roo
 
     if (!room) return NextResponse.json({ error: "Oda bulunamadı." }, { status: 404 });
     if (!room.isActive) return NextResponse.json({ error: "Bu oda kapatılmış." }, { status: 400 });
+    if (room.scheduledEnd && new Date(room.scheduledEnd).getTime() < Date.now()) {
+      // Bitiş zamanı geçmiş — odayı pasifleştir ve katılıma izin verme
+      await (prisma as any).studyRoom.update({ where: { id: roomId }, data: { isActive: false } }).catch(() => {});
+      return NextResponse.json({ error: "Bu odanın süresi dolmuş." }, { status: 400 });
+    }
     if (room._count.participants >= room.maxCapacity) {
       return NextResponse.json({ error: "Oda dolu." }, { status: 400 });
     }

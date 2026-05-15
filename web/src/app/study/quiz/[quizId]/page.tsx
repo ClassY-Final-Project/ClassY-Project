@@ -75,6 +75,43 @@ function ResultBadge({
   );
 }
 
+// Soru seçeneklerinin metni AI tarafından farklı formatlarda gelebiliyor
+// (örn. "A) Foo", "A. Foo", "A - Foo" veya sadece "Foo"). correctAnswer da
+// bazen sadece harf ("A") olabiliyor. Bu yüzden karşılaştırmayı toleranslı yap.
+function stripOptionPrefix(text: string): string {
+  if (!text) return "";
+  return text
+    .trim()
+    .replace(/^[A-Ea-e]\s*[\)\.\-:]\s*/, "")
+    .trim()
+    .toLocaleLowerCase("tr");
+}
+
+function isOptionCorrect(
+  option: string,
+  correctAnswer: string | null | undefined,
+  optionIndex: number,
+): boolean {
+  if (!correctAnswer) return false;
+  const letter = String.fromCharCode(65 + optionIndex);
+  const ca = correctAnswer.trim();
+
+  // 1) Tam eşleşme
+  if (option === ca) return true;
+
+  // 2) correctAnswer sadece bir harf (örn. "A")
+  if (/^[A-Ea-e]$/.test(ca) && ca.toUpperCase() === letter) return true;
+
+  // 3) correctAnswer "A)" / "A." / "A -" gibi başlıyorsa harfi karşılaştır
+  const prefixMatch = ca.match(/^([A-Ea-e])\s*[\)\.\-:]/);
+  if (prefixMatch && prefixMatch[1].toUpperCase() === letter) return true;
+
+  // 4) Önekleri çıkardıktan sonra metin eşleşmesi
+  if (stripOptionPrefix(option) === stripOptionPrefix(ca)) return true;
+
+  return false;
+}
+
 export default function QuizPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -285,7 +322,14 @@ export default function QuizPage() {
             </h2>
             <div className="space-y-3">
               {quiz.questions.map((question, index) => {
-                const isCorrect = question.userAnswer === question.correctAnswer;
+                const opts = (question.options as string[]) ?? [];
+                const correctIdx = opts.findIndex((opt, i) =>
+                  isOptionCorrect(opt, question.correctAnswer, i),
+                );
+                const correctOption =
+                  correctIdx >= 0 ? opts[correctIdx] : question.correctAnswer;
+                const userIdx = opts.findIndex((opt) => opt === question.userAnswer);
+                const isCorrect = userIdx >= 0 && userIdx === correctIdx;
 
                 return (
                   <div
@@ -310,13 +354,13 @@ export default function QuizPage() {
                             </p>
                             <p className="text-xs text-emerald-600 dark:text-emerald-400">
                               Doğru cevap:{" "}
-                              <span className="font-semibold">{question.correctAnswer}</span>
+                              <span className="font-semibold">{correctOption}</span>
                             </p>
                           </div>
                         ) : (
                           <p className="text-xs text-emerald-600 dark:text-emerald-400">
                             Doğru cevap:{" "}
-                            <span className="font-semibold">{question.correctAnswer}</span>
+                            <span className="font-semibold">{correctOption}</span>
                           </p>
                         )}
                       </div>
@@ -454,9 +498,11 @@ export default function QuizPage() {
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {(question.options as string[]).map((option, optionIndex) => {
                     const isSelected = selected === option;
-                    const isCorrect = submitted && question.correctAnswer === option;
+                    const isCorrect =
+                      submitted &&
+                      isOptionCorrect(option, question.correctAnswer, optionIndex);
                     const isWrongSelection =
-                      submitted && isSelected && question.correctAnswer !== option;
+                      submitted && isSelected && !isCorrect;
 
                     let buttonClass = "";
 
