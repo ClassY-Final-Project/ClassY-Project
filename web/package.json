@@ -13,10 +13,13 @@
   "dependencies": {
     "@daily-co/daily-js": "^0.89.1",
     "@supabase/supabase-js": "^2.105.1",
+    "@types/nodemailer": "^8.0.0",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
     "jsonwebtoken": "^9.0.3",
     "next": "16.1.6",
     "next-swagger-doc": "^0.4.1",
+    "nodemailer": "^8.0.7",
     "pdfjs-dist": "^5.7.284",
     "react": "19.2.3",
     "react-dom": "19.2.3",

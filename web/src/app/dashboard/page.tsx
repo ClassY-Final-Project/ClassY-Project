@@ -278,6 +278,14 @@ export default function DashboardPage() {
       setGenerated(null);
       setFile(null);
       showToast(msg, "error");
+    } else if (res.code === "IMAGE_PDF") {
+      const msg =
+        res.error ||
+        "Yüklediğiniz PDF görüntü tabanlı (taranmış) görünüyor ve metin içermiyor. Lütfen metin tabanlı (seçilebilir yazılı) bir PDF yükleyin.";
+      setError(msg);
+      setGenerated(null);
+      setFile(null);
+      showToast(msg, "error");
     } else {
       setError(res.error || "Üretim başarısız.");
     }

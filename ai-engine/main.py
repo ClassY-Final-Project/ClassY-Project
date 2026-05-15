@@ -106,6 +106,18 @@ async def generate_quiz(
         contents = await file.read()
         pdf_reader = PyPDF2.PdfReader(io.BytesIO(contents))
         extracted_text = "".join([page.extract_text() for page in pdf_reader.pages if page.extract_text()])
+
+        # Görüntü tabanlı (taranmış) PDF'leri tespit et: PyPDF2 sadece gömülü metin çıkarır,
+        # taranmış/sadece-resim PDF'lerde metin boş veya çok kısa olur. Bu durumda OCR olmadan
+        # Gemini'a boş prompt göndermek hem zaman alır hem de anlamsız sonuç üretir.
+        if len(extracted_text.strip()) < 50:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "IMAGE_PDF",
+                    "message": "Yüklediğiniz PDF görüntü tabanlı (taranmış) görünüyor ve metin içermiyor. Lütfen metin tabanlı (seçilebilir yazılı) bir PDF yükleyin.",
+                },
+            )
         
         # PROMPT İÇİNDE SAYIYI DİNAMİKLEŞTİRDİK
         prompt = f"""
@@ -208,6 +220,16 @@ async def generate_study_notes(file: UploadFile = File(...)):
         contents = await file.read()
         pdf_reader = PyPDF2.PdfReader(io.BytesIO(contents))
         extracted_text = "".join([page.extract_text() for page in pdf_reader.pages if page.extract_text()])
+
+        # Görüntü tabanlı (taranmış) PDF kontrolü
+        if len(extracted_text.strip()) < 50:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "IMAGE_PDF",
+                    "message": "Yüklediğiniz PDF görüntü tabanlı (taranmış) görünüyor ve metin içermiyor. Lütfen metin tabanlı (seçilebilir yazılı) bir PDF yükleyin.",
+                },
+            )
         
         # 2. Özet ve Flashcard İçin Özel Prompt
         prompt = f"""

@@ -128,6 +128,17 @@ export async function POST(
           { status: 422 },
         );
       }
+      if (notesRes.status === 422 && aiErr.code === "IMAGE_PDF") {
+        return NextResponse.json(
+          {
+            error:
+              aiErr.message ||
+              "Yüklediğiniz PDF görüntü tabanlı (taranmış) görünüyor ve metin içermiyor. Lütfen metin tabanlı bir PDF yükleyin.",
+            code: "IMAGE_PDF",
+          },
+          { status: 422 },
+        );
+      }
       return NextResponse.json(
         { error: "Çalışma notları üretilemedi." },
         { status: 502 },
@@ -149,6 +160,17 @@ export async function POST(
               aiErr.message ||
               "Yüklediğiniz PDF uygunsuz veya eğitimle ilgisiz içerik barındırıyor.",
             code: "INAPPROPRIATE_CONTENT",
+          },
+          { status: 422 }
+        );
+      }
+      if (quizRes.status === 422 && aiErr.code === "IMAGE_PDF") {
+        return NextResponse.json(
+          {
+            error:
+              aiErr.message ||
+              "Yüklediğiniz PDF görüntü tabanlı (taranmış) görünüyor ve metin içermiyor. Lütfen metin tabanlı bir PDF yükleyin.",
+            code: "IMAGE_PDF",
           },
           { status: 422 }
         );
